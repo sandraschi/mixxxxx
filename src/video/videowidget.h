@@ -30,6 +30,7 @@ class VideoWidget : public QWidget {
 
   protected:
     void paintEvent(QPaintEvent* event) override;
+    void renderImage(QPainter& p, const QImage& img);
 
   private slots:
     void slotFrameDecoded(const QImage& frame, double pts);
@@ -44,6 +45,9 @@ class VideoWidget : public QWidget {
 
     std::unique_ptr<ControlPushButton> m_pVideoEnabled;
     std::unique_ptr<ControlPushButton> m_pVideoFullscreen;
+    std::unique_ptr<ControlPotmeter> m_pVideoBrightness;
+    std::unique_ptr<ControlPotmeter> m_pVideoContrast;
+    std::unique_ptr<ControlPotmeter> m_pVideoSaturation;
 
     QImage m_currentFrame;
     QMutex m_frameMutex;

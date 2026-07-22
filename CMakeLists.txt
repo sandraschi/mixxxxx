@@ -3633,6 +3633,8 @@ if(FFMPEG)
     src/sources/soundsourceffmpeg.cpp
     src/video/videodecoder.cpp
     src/video/videowidget.cpp
+    src/video/videomixer.cpp
+    src/video/videothumbnail.cpp
   )
   target_compile_definitions(mixxx-lib PUBLIC
     __FFMPEG__

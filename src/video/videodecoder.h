@@ -13,6 +13,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/hwcontext.h>
 }
 
 class VideoDecoder : public QThread {
@@ -47,6 +48,7 @@ class VideoDecoder : public QThread {
     void run() override;
 
   private:
+    bool initHardwareDecoder();
     bool decodePacket();
     QImage convertFrameToImage(const AVFrame* frame);
 
@@ -57,6 +59,9 @@ class VideoDecoder : public QThread {
     const AVCodec* m_codec = nullptr;
     SwsContext* m_swsCtx = nullptr;
     int m_videoStreamIndex = -1;
+    AVBufferRef* m_hwDeviceCtx = nullptr;
+    AVHWDeviceType m_hwType = AV_HWDEVICE_TYPE_NONE;
+    bool m_hwEnabled = false;
 
     int m_width = 0;
     int m_height = 0;

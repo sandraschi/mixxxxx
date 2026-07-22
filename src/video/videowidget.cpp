@@ -1,7 +1,9 @@
 #include "video/videowidget.h"
 #include "video/videodecoder.h"
+#include "video/videomixer.h"
 #include "control/controlpushbutton.h"
 #include "control/controlobject.h"
+#include "control/controlpotmeter.h"
 #include "moc_videowidget.cpp"
 
 #include <QPainter>
@@ -27,6 +29,13 @@ VideoWidget::VideoWidget(const QString& group, QWidget* parent)
             this, &VideoWidget::slotVideoEnabled);
     connect(m_pVideoFullscreen.get(), &ControlPushButton::valueChanged,
             this, &VideoWidget::slotVideoFullscreen);
+
+    m_pVideoBrightness = std::make_unique<ControlPotmeter>(
+        ConfigKey(group, "video_brightness"), -1.0, 1.0, true);
+    m_pVideoContrast = std::make_unique<ControlPotmeter>(
+        ConfigKey(group, "video_contrast"), 0.0, 3.0, true);
+    m_pVideoSaturation = std::make_unique<ControlPotmeter>(
+        ConfigKey(group, "video_saturation"), 0.0, 3.0, true);
 
     m_repaintTimer = new QTimer(this);
     connect(m_repaintTimer, &QTimer::timeout, this, &VideoWidget::slotTick);
@@ -134,6 +143,15 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
     p.setRenderHint(QPainter::SmoothPixmapTransform);
 
     if (!m_hasVideo || m_currentFrame.isNull()) {
+        // Try to show the blended output from the video mixer
+        ControlObject* co = ControlObject::getControl(ConfigKey("[Mixer]", "crossfader"));
+        double xfader = co ? co->get() : 0.0;
+        QImage mixed = VideoMixer::instance().blendFrame(xfader);
+        if (!mixed.isNull()) {
+            renderImage(p, mixed);
+            return;
+        }
+
         p.fillRect(rect(), Qt::black);
         if (!m_currentVideoPath.isEmpty()) {
             p.setPen(Qt::white);
@@ -149,9 +167,19 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
     QImage frame = m_currentFrame;
     lock.unlock();
 
-    // Aspect-ratio-prescenting render
+    // Apply per-deck VFX
+    double bright = m_pVideoBrightness ? m_pVideoBrightness->get() : 0.0;
+    double contrast = m_pVideoContrast ? m_pVideoContrast->get() : 1.0;
+    if (!qFuzzyCompare(bright, 0.0) || !qFuzzyCompare(contrast, 1.0)) {
+        frame = VideoMixer::instance().applyBrightnessContrast(frame, bright, contrast);
+    }
+
+    renderImage(p, frame);
+}
+
+void VideoWidget::renderImage(QPainter& p, const QImage& img) {
     QRect target;
-    double frameAspect = (double)frame.width() / frame.height();
+    double frameAspect = (double)img.width() / img.height();
     double widgetAspect = (double)width() / height();
 
     if (frameAspect > widgetAspect) {
@@ -162,5 +190,5 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
         target = QRect((width() - w) / 2, 0, w, height());
     }
 
-    p.drawImage(target, frame);
+    p.drawImage(target, img);
 }

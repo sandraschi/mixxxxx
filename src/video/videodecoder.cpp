@@ -1,4 +1,5 @@
 #include "video/videodecoder.h"
+#include "video/videomixer.h"
 #include "moc_videodecoder.cpp"
 
 #include <QFileInfo>
@@ -49,6 +50,9 @@ void VideoDecoder::openFile(const QString& filePath) {
         return;
     }
 
+    // Try D3D11VA hardware acceleration (Windows)
+    initHardwareDecoder();
+
     m_width = m_codecCtx->width;
     m_height = m_codecCtx->height;
     m_duration = m_formatCtx->duration / (double)AV_TIME_BASE;
@@ -64,6 +68,9 @@ void VideoDecoder::openFile(const QString& filePath) {
 
     m_open = true;
     m_playing.storeRelaxed(1);
+
+    // Register with the global mixer for crossfader compositing
+    VideoMixer::instance().registerDecoder(m_videoStreamIndex, this);
 
     if (!isRunning()) {
         start(QThread::NormalPriority);
@@ -86,6 +93,8 @@ void VideoDecoder::close() {
     if (m_packet) { av_packet_free(&m_packet); }
     if (m_codecCtx) { avcodec_free_context(&m_codecCtx); }
     if (m_formatCtx) { avformat_close_input(&m_formatCtx); }
+    if (m_hwDeviceCtx) { av_buffer_unref(&m_hwDeviceCtx); }
+    VideoMixer::instance().unregisterDecoder(m_videoStreamIndex);
     m_open = false;
     m_abort.storeRelaxed(0);
 }
@@ -135,6 +144,28 @@ void VideoDecoder::run() {
     }
 }
 
+bool VideoDecoder::initHardwareDecoder() {
+    // Try D3D11VA first (Windows), fall back to CUDA, then software
+    AVHWDeviceType types[] = {
+        AV_HWDEVICE_TYPE_D3D11VA,
+        AV_HWDEVICE_TYPE_CUDA,
+        AV_HWDEVICE_TYPE_NONE
+    };
+
+    for (int i = 0; types[i] != AV_HWDEVICE_TYPE_NONE; ++i) {
+        if (av_hwdevice_ctx_create(&m_hwDeviceCtx, types[i], nullptr, nullptr, 0) == 0) {
+            m_hwType = types[i];
+            m_codecCtx->hw_device_ctx = av_buffer_ref(m_hwDeviceCtx);
+            m_hwEnabled = true;
+            qDebug().nospace() << "VideoDecoder: HW decode enabled (" << av_hwdevice_get_type_name(m_hwType) << ")";
+            return true;
+        }
+    }
+
+    qDebug() << "VideoDecoder: HW decode unavailable, using software";
+    return false;
+}
+
 bool VideoDecoder::decodePacket() {
     QMutexLocker lock(&m_mutex);
     if (!m_formatCtx) return false;
@@ -179,10 +210,27 @@ bool VideoDecoder::decodePacket() {
 }
 
 QImage VideoDecoder::convertFrameToImage(const AVFrame* frame) {
+    AVFrame* swFrame = nullptr;
+    const AVFrame* srcFrame = frame;
+
+    // If hardware frame, download to system memory
+    if (m_hwEnabled && frame->hw_frames_ctx) {
+        swFrame = av_frame_alloc();
+        if (av_hwframe_transfer_data(swFrame, frame, 0) == 0) {
+            srcFrame = swFrame;
+        }
+    }
+
     QImage image(m_width, m_height, QImage::Format_RGBA8888);
     uint8_t* dst[] = { image.bits() };
     int stride[] = { static_cast<int>(image.bytesPerLine()) };
 
-    sws_scale(m_swsCtx, frame->data, frame->linesize, 0, m_height, dst, stride);
+    sws_scale(m_swsCtx, srcFrame->data, srcFrame->linesize, 0, m_height, dst, stride);
+
+    // Push frame to the global mixer for compositing
+    VideoMixer::instance().pushFrame(m_videoStreamIndex, image, m_lastPts);
+
+    if (swFrame)
+        av_frame_free(&swFrame);
     return image;
 }
