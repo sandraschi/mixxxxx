@@ -1,109 +1,66 @@
 # Mixxxxx — Video-Enabled Mixxx Fork
 
-**Status**: Active development
+**Status**: Active development (v0.1 scaffolded)
 **Base**: Mixxx 2.5.6
-**Version**: v2
+**Version**: v0.1
 
 ## What It Is
 
-Mixxxxx is a fork of Mixxx 2.5.6 that adds real-time video playback to the DJ mixer.
-Companion video files (same basename, .mp4/.mkv/.mov/.webm) are autoloaded when a
-track loads, decoded via bundled FFmpeg, and composited with the audio mix.
+Mixxxxx is a fork of Mixxx 2.5.6 that adds video playback alongside audio decks. Companion video files (same basename, .mp4/.mkv/.mov/.webm) are autoloaded when a track loads, decoded via bundled FFmpeg.
 
-## Features
+**Honest status**: The decode, render, compositing, and hardware decode pieces compile and run. What's NOT wired yet: A/V sync (video free-runs on its own timer, doesn't follow deck transport). Suitable for projection/video backdrop. Not suitable for scratch/loop/pitch-locked video.
 
-### v1 (shipped)
+## What Actually Exists
 
-- **VideoDecoder**: Dedicated FFmpeg decode thread per deck (avcodec/avformat/swscale).
-  Handles A/V sync (PTS-based), threaded decode, and seek.
-- **VideoWidget**: QPainter-based rendering with aspect-ratio letterbox. Integrates into
-  Mixxx's existing widget tree as a `<VideoWidget>` skin element.
-- **ControlObjects**: `video_enabled` and `video_fullscreen` per deck.
-- **Skin**: `<VideoWidget>` XML element added to LateNight deck layout.
-- **Library**: `.mkv` and `.webm` added to format whitelist.
-- **Build**: CMake + Ninja, 9.7 MB standalone exe.
+### Decode (src/video/videodecoder.h/.cpp)
 
-### v2 (shipped)
+- FFmpeg decode thread per deck via avcodec_send_packet / avcodec_receive_frame
+- PTS tracking in `m_lastPts`
+- `setAudioClock()` method exists but is NEVER CALLED by the engine (the hard 20% is unwired)
+- Video runs on its own msleep timer paced to the file's frame rate
+- Loops back to position 0 on EOF — no awareness of deck transport
+- Hardware decode via D3D11VA or CUDA fallback in `initHardwareDecoder()` — inline, not a separate module
 
-- **VideoMixer**: Singleton compositing all deck video streams. Supports crossfader
-  blending between decks — the video mix follows the audio crossfader.
-- **VFX**: Per-deck video processing via ControlObjects: `video_brightness`,
-  `video_contrast`, `video_saturation`. Real-time adjustment with 0.0–1.0 range.
-- **VideoThumbnail**: FFmpeg keyframe extraction for waveform overviews. LRU cache
-  (500 entries) keyed by track ID.
-- **Hardware decode**: D3D11VA and CUDA via `av_hwdevice_ctx_create`. Falls back to
-  software decode when no compatible GPU is found.
-- **Video output panel**: Detachable fullscreen window for secondary monitor output
-  (projector mode). Independent of the main Mixxx window.
-- **Skin attributes**: `show_video_preview` (per-deck toggle to show/hide preview),
-  `show_video_output` (toggle the output panel).
-- **6 new ControlObjects**: `video_crossfader`, `video_brightness`, `video_contrast`,
-  `video_saturation`, `video_enabled`, `video_fullscreen`.
+### Rendering (src/video/videowidget.h/.cpp)
 
-## Architecture
+- QPainter-based rendering with aspect-ratio letterbox
+- Integrates as `<VideoWidget>` skin element in LateNight
+- Fullscreen window support for secondary monitor output
+- Per-deck brightness/contrast/saturation via ControlPotmeter COs
 
-### Video Module Structure
+### Mixer (src/video/videomixer.h/.cpp)
 
-```
-src/
-└── video/
-    ├── videodecoder.h/.cpp        # FFmpeg decode thread, A/V sync
-    ├── videowidget.h/.cpp         # QPainter rendering widget
-    ├── videomixer.h/.cpp          # Singleton compositor, crossfader blending
-    ├── videothumbnail.h/.cpp      # Keyframe extraction, LRU cache
-    ├── videoframe.h               # Shared decoded frame type (AVFrame wrapper)
-    └── hw/
-        ├── hwdevice_d3d11.cpp     # D3D11VA hardware decode
-        └── hwdevice_cuda.cpp      # CUDA hardware decode
-```
+- Singleton composites frames from all active decks
+- Crossfader blending: blends Deck A→Deck B opacity following [Mixer],crossfader
+- VFX helpers static — callable from per-deck widgets
+
+### Thumbnails (src/video/videothumbnail.h/.cpp)
+
+- FFmpeg keyframe extraction at 10% seek position
+- 500-entry LRU cache
+- `getThumbnail(path, w, h)` API
 
 ### ControlObjects
 
-| CO | Deck | Range | Description |
-|----|------|-------|-------------|
-| `video_enabled` | Per-deck | 0/1 | Enable/disable video output for deck |
-| `video_fullscreen` | Per-deck | 0/1 | Toggle fullscreen video window |
-| `video_crossfader` | Global | 0.0–1.0 | Blend video between decks |
-| `video_brightness` | Per-deck | 0.0–1.0 | Brightness adjustment |
-| `video_contrast` | Per-deck | 0.0–1.0 | Contrast adjustment |
-| `video_saturation` | Per-deck | 0.0–1.0 | Saturation adjustment |
+| CO | Group | Range | Status |
+|----|-------|-------|--------|
+| `video_enabled` | `[Channel{N}]` | 0/1 | Working |
+| `video_fullscreen` | `[Channel{N}]` | 0/1 | Working |
+| `video_brightness` | `[Channel{N}]` | -1 to 1 | Working |
+| `video_contrast` | `[Channel{N}]` | 0 to 3 | Working |
+| `video_saturation` | `[Channel{N}]` | 0 to 3 | Working |
+| `video_crossfader` | `[Mixer]` | -1 to 1 | Working |
 
-### Companion Video Naming
+### Known Gaps
 
-For a track `artist - title.mp3`, the autoloader looks for (in order):
-- `artist - title.mp4`
-- `artist - title.mkv`
-- `artist - title.mov`
-- `artist - title.webm`
+| Gap | Impact | Effort to Fix |
+|-----|--------|---------------|
+| **A/V sync unwired** — `setAudioClock()` never called | Scratch/loop/pitch-bend breaks video sync | Hard — needs EngineBuffer hook, backward seek handling, loop stutter avoidance |
+| **No stem separation** | Can't isolate vocals/drums/bass from video tracks | Medium — ONNX Runtime integration, ~400 lines C++ |
+| **No clip extraction** | Can't extract segments from longer videos | Easy — shell out to FFmpeg |
+| **No library thumbnails** | Video files show blank cover art in Mixxx library | Easy — wire VideoThumbnail into existing CoverArt DAO |
 
-Same directory as the audio file. The `.mp4` format takes priority; if multiple
-companion formats exist, the first found in the extension order above is used.
-
-### OSC Integration
-
-All video COs are addressable via OSC at `/deck/[N]/<co_name>` using the
-companion mixx-dj-mcp server (ports 11118/11119). The full OSC address table:
-
-```
-/deck/[N]/video_enabled       → 1.0/0.0
-/deck/[N]/video_fullscreen    → 1.0/0.0
-/deck/[N]/video_brightness    → 0.0-1.0
-/deck/[N]/video_contrast      → 0.0-1.0
-/deck/[N]/video_saturation    → 0.0-1.0
-/video_crossfader             → 0.0-1.0
-```
-
-## Build Instructions
-
-### Prerequisites
-
-- Visual Studio 2022 (MSVC v143)
-- CMake 3.21+
-- Ninja
-- vcpkg (via `tools/windows_release_buildenv.bat`)
-- FFmpeg 6.x+ dev libraries (avcodec, avformat, swscale, avutil, avdevice)
-
-### Build Steps
+## Quick Build
 
 ```powershell
 tools\windows_release_buildenv.bat
@@ -112,18 +69,17 @@ cmake -DCMAKE_TOOLCHAIN_FILE="..\buildenv\mixxx-deps-2.5-x64-windows-release-40c
 ninja
 ```
 
-Output: `build\mixxx.exe` (~9.7 MB).
+## OSC Control (via mixx-dj-mcp)
 
-### OSC Companion
-
-The sister project [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp)
-provides AI-controlled OSC bridge for all video COs.
+| CO | OSC Address | mixx-dj-mcp tool |
+|----|-------------|------------------|
+| video_enabled | `/deck/{N}/video_enabled` | `mixx_deck(operation="video_enable")` |
+| video_fullscreen | `/deck/{N}/video_fullscreen` | `mixx_deck(operation="video_fullscreen")` |
 
 ## Non-Goals
 
-- No video recording or streaming (use OBS Studio)
-- No video transitions/crossfading beyond the basic crossfader blend
-- No real-time video effects apart from brightness/contrast/saturation
-- No performance on systems without GPU hardware decode (software decode works but is CPU-heavy)
-- No macOS or Linux support (Windows only — no plans to port)
-- No video file import/re-encoding (use external tools)
+- Real-time AI stem separation during playback (pre-process before gig)
+- Video transitions/effects beyond crossfader blend
+- Video recording or streaming output
+- DRM'd video content
+- Replacing a dedicated video mixer hardware
