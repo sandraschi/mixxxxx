@@ -70,6 +70,7 @@
 #include "widget/wsizeawarestack.h"
 #include "widget/wskincolor.h"
 #include "widget/wslidercomposed.h"
+#include "widget/wphaseindicator.h"
 #include "widget/wspinny.h"
 #include "widget/wspinnyglsl.h"
 #include "widget/wsplitter.h"
@@ -606,6 +607,8 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parseEffectParameterName(node));
     } else if (nodeName == "EffectButtonParameterName") {
         result = wrapWidget(parseEffectButtonParameterName(node));
+    } else if (nodeName == "PhaseIndicator") {
+        result = wrapWidget(parsePhaseIndicator(node));
     } else if (nodeName == "Spinny") {
         result = wrapWidget(parseSpinny(node));
     } else if (nodeName == "VideoWidget") {
@@ -1314,6 +1317,13 @@ QWidget* LegacySkinParser::parseRecordingDuration(const QDomElement& node) {
     p->installEventFilter(m_pKeyboard);
     p->installEventFilter(m_pControllerManager->getControllerLearningEventFilter());
     return p;
+}
+
+QWidget* LegacySkinParser::parsePhaseIndicator(const QDomElement& node) {
+    QString group = lookupNodeGroup(node);
+    auto* pPhase = new WPhaseIndicator(group, m_pParent);
+    commonWidgetSetup(node, pPhase);
+    return pPhase;
 }
 
 QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {

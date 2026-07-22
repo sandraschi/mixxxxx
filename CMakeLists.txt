@@ -890,6 +890,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/engine/controls/enginecontrol.cpp
   src/engine/controls/keycontrol.cpp
   src/engine/controls/loopingcontrol.cpp
+  src/engine/controls/phasecontrol.cpp
   src/engine/controls/quantizecontrol.cpp
   src/engine/controls/ratecontrol.cpp
   src/engine/effects/engineeffect.cpp
@@ -1361,6 +1362,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/widget/wvumeter.cpp
   src/widget/wvumeterbase.cpp
   src/widget/wvumeterlegacy.cpp
+  src/widget/wphaseindicator.cpp
   src/widget/wwaveformviewer.cpp
   src/widget/wwidget.cpp
   src/widget/wwidgetgroup.cpp
@@ -2545,7 +2547,9 @@ if(ENGINEPRIME)
   target_sources(mixxx-lib PRIVATE
     src/library/export/dlglibraryexport.cpp
     src/library/export/engineprimeexportjob.cpp
-    src/library/export/libraryexporter.cpp)
+    src/library/export/libraryexporter.cpp
+    src/export/export_controls.cpp
+    src/export/rekordboxexporter.cpp)
   target_compile_definitions(mixxx-lib PUBLIC __ENGINEPRIME__)
 endif()
 

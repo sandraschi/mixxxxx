@@ -24,6 +24,7 @@ class SkinContext;
 class WLabel;
 class ControlObject;
 class LaunchImage;
+class WPhaseIndicator;
 class WWidgetGroup;
 
 class LegacySkinParser : public QObject, public SkinParser {
@@ -111,6 +112,7 @@ class LegacySkinParser : public QObject, public SkinParser {
     // Visual widgets.
     QWidget* parseVisual(const QDomElement& node);
     QWidget* parseOverview(const QDomElement& node);
+    QWidget* parsePhaseIndicator(const QDomElement& node);
     QWidget* parseSpinny(const QDomElement& node);
     QWidget* parseVideoWidget(const QDomElement& node);
     QWidget* parseVuMeter(const QDomElement& node);

@@ -81,6 +81,11 @@ void Tooltips::addStandardTooltips() {
             << dropTracksHere
             << tr("If Vinyl control is enabled, displays time-coded vinyl signal quality (see Preferences -> Vinyl Control).");
 
+    add("phase_indicator")
+            << tr("Phase Indicator")
+            << tr("Shows beat phase alignment. A full bright ring means the beat is locked; "
+                  "a gap grows and the color shifts from green to red as the decks drift out of phase.");
+
     add("big_spinny_coverart")
             << tr("Big Spinny/Cover Art")
             << tr("Show a big version of the Spinny or track cover art if enabled.");

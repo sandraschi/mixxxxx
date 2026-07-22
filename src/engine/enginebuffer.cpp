@@ -16,6 +16,7 @@
 #include "engine/controls/enginecontrol.h"
 #include "engine/controls/keycontrol.h"
 #include "engine/controls/loopingcontrol.h"
+#include "engine/controls/phasecontrol.h"
 #include "engine/controls/quantizecontrol.h"
 #include "engine/controls/ratecontrol.h"
 #include "engine/enginemixer.h"
@@ -224,6 +225,9 @@ EngineBuffer::EngineBuffer(const QString& group,
 
     m_pKeyControl = new KeyControl(group, pConfig);
     addControl(m_pKeyControl);
+
+    m_pPhaseControl = new PhaseControl(group, pConfig);
+    addControl(m_pPhaseControl);
 
     // Create the clock controller
     m_pClockControl = new ClockControl(group, pConfig);

@@ -1,0 +1,10 @@
+<Template>
+  <SetVariable name="Group">[Channel<Variable name="ChanNum"/>]</SetVariable>
+  <PhaseIndicator>
+    <TooltipId>phase_indicator</TooltipId>
+    <SizePolicy>me,me</SizePolicy>
+    <MinimumSize>30,30</MinimumSize>
+    <MaximumSize>40,40</MaximumSize>
+    <Group><Variable name="Group"/></Group>
+  </PhaseIndicator>
+</Template>

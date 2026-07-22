@@ -10,6 +10,9 @@
 #ifdef __BROADCAST__
 #include "broadcast/broadcastmanager.h"
 #endif
+#ifdef __ENGINEPRIME__
+#include "export/export_controls.h"
+#endif
 #include "control/controlindicatortimer.h"
 #include "controllers/controllermanager.h"
 #include "controllers/keyboard/keyboardeventfilter.h"
@@ -660,6 +663,10 @@ void CoreServices::initialize(QApplication* pApp) {
     m_pPlayerManager->loadSamplers();
 
     m_pTouchShift = std::make_unique<ControlPushButton>(ConfigKey("[Controls]", "touch_shift"));
+
+#ifdef __ENGINEPRIME__
+    registerExportControls();
+#endif
 
     // The UI controls must be created here so that controllers can bind to
     // them on startup.

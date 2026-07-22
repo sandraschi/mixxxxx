@@ -36,6 +36,7 @@ class RateControl;
 class SyncControl;
 class VinylControlControl;
 class LoopingControl;
+class PhaseControl;
 class ClockControl;
 class CueControl;
 class ReadAheadManager;
@@ -318,6 +319,7 @@ class EngineBuffer : public EngineObject {
     RateControl* m_pRateControl;
     BpmControl* m_pBpmControl;
     KeyControl* m_pKeyControl;
+    PhaseControl* m_pPhaseControl;
     ClockControl* m_pClockControl;
     FRIEND_TEST(CueControlTest, SeekOnSetCueCDJ);
     FRIEND_TEST(CueControlTest, SeekOnSetCuePlay);

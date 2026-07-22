@@ -52,6 +52,8 @@
         </Connection>
       </WidgetGroup>
 
+      <Template src="skins:LateNight/decks/phase_indicator.xml" />
+
     </Children>
   </WidgetGroup><!-- DeckRow_4_OverviewSpinny -->
 </Template>
