@@ -3654,6 +3654,30 @@ if(FFMPEG)
   target_include_directories(mixxx-lib PUBLIC "${FFMPEG_INCLUDE_DIRS}")
 endif()
 
+# ONNX Runtime for AI stem separation (Windows only)
+option(ONNX_RUNTIME "ONNX Runtime for AI stem separation" OFF)
+if(WIN32 AND ONNX_RUNTIME)
+  include(FetchContent)
+  FetchContent_Declare(
+    onnxruntime
+    URL https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-win-x64-1.20.1.zip
+    SOURCE_DIR "${CMAKE_BINARY_DIR}/onnxruntime"
+  )
+  FetchContent_MakeAvailable(onnxruntime)
+
+  target_include_directories(mixxx-lib PRIVATE "${onnxruntime_SOURCE_DIR}/include")
+  target_sources(mixxx-lib PRIVATE
+    src/stems/stem_separator.cpp
+  )
+  target_compile_definitions(mixxx-lib PUBLIC __ONNX_RUNTIME__)
+  target_link_libraries(mixxx-lib PRIVATE "${onnxruntime_SOURCE_DIR}/lib/onnxruntime.lib")
+  add_custom_command(TARGET mixxx-lib POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${onnxruntime_SOURCE_DIR}/lib/onnxruntime.dll"
+      "$<TARGET_FILE_DIR:mixxx-lib>"
+  )
+endif()
+
 # Google PerfTools
 option(GPERFTOOLS "Google PerfTools libtcmalloc linkage" OFF)
 option(GPERFTOOLSPROFILER "Google PerfTools libprofiler linkage" OFF)
