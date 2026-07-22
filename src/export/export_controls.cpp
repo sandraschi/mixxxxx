@@ -23,4 +23,16 @@ void registerExportControls() {
 
     static const auto exportDeck4 = std::make_unique<ControlPushButton>(
             ConfigKey("[Channel4]", "export_rekordbox"));
+
+    static const auto exportSerato = std::make_unique<ControlPushButton>(
+            ConfigKey("[Export]", "export_serato"));
+
+    static const auto seratoPath = std::make_unique<ControlObject>(
+            ConfigKey("[Export]", "serato_path"), false, false, true, 0);
+
+    static const auto exportVirtualDj = std::make_unique<ControlPushButton>(
+            ConfigKey("[Export]", "export_virtualdj"));
+
+    static const auto virtualDjPath = std::make_unique<ControlObject>(
+            ConfigKey("[Export]", "virtualdj_path"), false, false, true, 0);
 }

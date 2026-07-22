@@ -2550,7 +2550,9 @@ if(ENGINEPRIME)
     src/library/export/engineprimeexportjob.cpp
     src/library/export/libraryexporter.cpp
     src/export/export_controls.cpp
-    src/export/rekordboxexporter.cpp)
+    src/export/rekordboxexporter.cpp
+    src/export/seratoexporter.cpp
+    src/export/virtualdjexporter.cpp)
   target_compile_definitions(mixxx-lib PUBLIC __ENGINEPRIME__)
 endif()
 
