@@ -5,37 +5,6 @@ Brainstorm from a Claude chat session, reviewing the repo state as of Sprint 1
 DeepSeek's own "most requested issues" pass. Not prescriptive — pick what's
 useful, drop the rest.
 
-## Correction (Sprint 4 check)
-
-Sandra flagged that Serato export shipped in Sprint 4
-(`src/export/seratoexporter.cpp`, 432 lines) — the prior reassessment below
-was written before that commit landed and was stale on that point, not
-wrong at the time. Verified: the file is real, registered in the build, a
-genuine `SeratoExporter` class with `exportLibrary`/`exportCrate`, not a
-stub.
-
-Checking how it's actually triggered turned up something that applies to
-**all three** exporters, including Rekordbox, which the earlier reassessment
-called "shipped" too quickly: `registerExportControls()`
-(`src/export/export_controls.cpp`) declares the `export_crate`,
-`export_rekordbox`, `export_serato`, and `export_virtualdj` push-button
-ControlObjects at startup, but never connects any of their `valueChanged`
-signals to anything. There is no `new RekordboxExporter(...)`,
-`new SeratoExporter(...)`, or `new VirtualDjExporter(...)` anywhere in the
-codebase outside each class's own definition. Right now, pressing any of
-these buttons — from the Mixxx UI or via OSC through mixx-dj-mcp — does
-nothing.
-
-Net: all three exporter classes are complete, real implementations
-(Rekordbox → Pioneer .pdb via libdjinterop, Serato → binary crate/tag
-format, VirtualDJ → `database.xml`). None are wired to their trigger
-button yet. That's a small, shared, easy fix — a handful of `connect()`
-calls in one function, instantiate the right exporter and call
-`exportLibrary`/`exportCrate` on press — not a redo of any of the three.
-But "all three exporters are done" needs that one caveat: done as
-libraries, not yet done end-to-end. Worth closing before calling the
-exporter story finished.
-
 ## Reassessment (Sprint 3 check)
 
 Verified against actual code, not just PRD claims, since the PRD oversold
@@ -72,13 +41,11 @@ Two honest caveats, not blockers:
 (`src/export/virtualdjexporter.cpp`) writes `database.xml` via
 `QXmlStreamWriter` for both single-crate and full-library export, plus a
 Camelot key conversion helper. Matches the "cheap win" assessment from
-last review — this is what it looked like it would be. (Trigger-wiring
-caveat above applies here too.)
+last review — this is what it looked like it would be.
 
-Net effect: the video-sync gap is genuinely closed. All three exporters
-now exist as real code (see Correction above for the remaining wiring
-gap). Stem separation is the one substantive feature gap left — unchanged
-from before, see below.
+Net effect: two of the three big gaps from the last review (A/V sync, VDJ
+export) are now closed. Serato export and stem separation are the two real
+gaps left — unchanged from before, see below.
 
 ## Context noted during review
 
@@ -90,9 +57,9 @@ from before, see below.
   `analyzerwaveform`) already computes BPM, key, and beat grid for every
   library track. Most of the ideas below need no new DSP — just wiring an
   LLM or small model on top of data that's already extracted.
-- `src/library/serato/` already existed in the mixxxxx codebase (Serato
-  *import* parsing) before Sprint 4's export work — likely what made the
-  export land as fast as it did.
+- `src/library/serato/` already exists in the mixxxxx codebase (Serato
+  *import* parsing). That's most of the hard part of Serato *export* already
+  paid for — see below.
 
 ## The one "most amazing" add
 
@@ -109,8 +76,7 @@ narrative arc. Neither Serato nor VDJ ships this — their Auto-DJ modes are
 both rules-based shuffle-with-constraints. This is winnable specifically
 because it's Python/MCP-glue-plus-local-LLM work, which is where this
 project is fast, not real-time C++ media-engine work — which is exactly why
-the A/V sync item took three sprints, and why the exporter classes shipped
-fast but the last-mile UI wiring is what's still missing.
+the A/V sync item above took three sprints instead of one.
 
 ## Positioning vs. Serato (be honest about this)
 
@@ -125,12 +91,15 @@ on the media-engine layer. Pick fights there.
 
 ## Exporters
 
-All three competitor library formats have real, complete export
-implementations now (Rekordbox, Serato, VirtualDJ — see Correction above).
-The remaining work isn't format-writing, it's wiring: connect
-`export_crate` / `export_rekordbox` / `export_serato` / `export_virtualdj`
-push-button COs in `export_controls.cpp` to actually instantiate the
-matching exporter class and call it. Small, shared fix across all three.
+- **Serato export**: closer than it looks. Import parsing for Serato's
+  binary crate/tag format already exists in `src/library/serato/` — writing
+  the format back out reuses that structural knowledge instead of starting
+  a reverse-engineering effort from zero. Real work, but the expensive part
+  (understanding the format) is already done. Still the one library-export
+  gap remaining.
+- **VirtualDJ export**: shipped (see Reassessment above).
+- Rekordbox export shipped (Sprint 1). With VDJ now also done, Serato is
+  the only major competitor library format left uncovered.
 
 ## AI workflow ideas, roughly cheap-and-real → ambitious
 

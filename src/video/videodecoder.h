@@ -39,7 +39,6 @@ class VideoDecoder : public QThread {
     double currentPosition() const;
 
     void setSpeed(double speed); // audio-driven speed multiplier
-    void setAudioClock(double clockSeconds); // push current audio position
     void setGroup(const QString& group) { m_group = group; }
 
   signals:

@@ -127,9 +127,6 @@ void VideoDecoder::setSpeed(double speed) {
     m_speed = qMax(0.25, qMin(4.0, speed));
 }
 
-void VideoDecoder::setAudioClock(double clockSeconds) {
-    m_audioClock = clockSeconds;
-}
 
 void VideoDecoder::run() {
     while (!m_abort.loadRelaxed()) {
