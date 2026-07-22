@@ -40,6 +40,8 @@
       <attribute config_key="[App],num_decks">4</attribute>
       <attribute config_key="[App],num_samplers">16</attribute>
       <attribute persist="true" config_key="[Skin],show_waveforms">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_video_preview">0</attribute>
+      <attribute persist="true" config_key="[Skin],show_video_output">0</attribute>
       <attribute persist="true" config_key="[Skin],timing_shift_buttons">0</attribute>
 
     <!-- Decks -->
@@ -432,6 +434,7 @@
       <Children>
 
         <Template src="skins:LateNight/toolbar.xml"/>
+    <Template src="skins:LateNight/video_output.xml"/>
 
         <!-- regular/maximized library  |  skin settings menu -->
         <WidgetGroup>

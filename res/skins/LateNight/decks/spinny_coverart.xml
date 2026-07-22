@@ -35,7 +35,7 @@
         </Connection>
       </WidgetGroup>
 
-      <!-- Cover Art -->
+      <!-- Video Preview -->
       <WidgetGroup>
         <Layout>vertical</Layout>
         <SizePolicy>min,min</SizePolicy>
@@ -45,22 +45,21 @@
             <SizePolicy>min,min</SizePolicy>
             <Children>
               <WidgetGroup>
-                <ObjectName>CoverArtContainer</ObjectName>
+                <ObjectName>VideoPreviewContainer</ObjectName>
                 <Layout>horizontal</Layout>
                 <SizePolicy>min,min</SizePolicy>
                 <Children>
-                  <CoverArt>
-                    <TooltipId>coverart</TooltipId>
+                  <VideoWidget>
+                    <TooltipId>video_preview</TooltipId>
                     <SizePolicy>me,me</SizePolicy>
                     <MinimumSize>40,40</MinimumSize>
                     <Group><Variable name="Group"/></Group>
-                    <DefaultCover>skins:LateNight/<Variable name="StyleScheme"/>/style/cover_default.svg</DefaultCover>
-                  </CoverArt>
+                  </VideoWidget>
                 </Children>
               </WidgetGroup>
             </Children>
             <Connection>
-              <ConfigKey persist="true">[Skin],show_coverart</ConfigKey>
+              <ConfigKey persist="true">[Skin],show_video_preview</ConfigKey>
               <BindProperty>visible</BindProperty>
             </Connection>
           </WidgetGroup>
@@ -71,6 +70,8 @@
           <BindProperty>visible</BindProperty>
         </Connection>
       </WidgetGroup>
+
+      <!-- Cover Art -->
 
     </Children>
   </WidgetGroup>

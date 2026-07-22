@@ -1,0 +1,58 @@
+<!--
+  Video Output Panel — Fullscreen/projector video output.
+  This panel appears when [Skin],show_video_output is enabled.
+  It provides a large video view that auto-detects secondary monitors.
+-->
+<Template>
+  <WidgetGroup>
+    <ObjectName>VideoOutput</ObjectName>
+    <Layout>horizontal</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <MinimumSize>320,240</MinimumSize>
+    <Children>
+
+      <!-- Main Video Output -->
+      <WidgetGroup>
+        <ObjectName>VideoOutputScreen</ObjectName>
+        <Layout>horizontal</Layout>
+        <SizePolicy>me,me</SizePolicy>
+        <Children>
+          <VideoWidget>
+            <TooltipId>video_output</TooltipId>
+            <SizePolicy>me,me</SizePolicy>
+            <MinimumSize>320,240</MinimumSize>
+            <Group>[Master]</Group>
+          </VideoWidget>
+        </Children>
+      </WidgetGroup>
+
+      <!-- Fullscreen Toggle Button -->
+      <WidgetGroup>
+        <Layout>vertical</Layout>
+        <SizePolicy>min,min</SizePolicy>
+        <Children>
+          <PushButton>
+            <TooltipId>video_fullscreen</TooltipId>
+            <SizePolicy>min,min</SizePolicy>
+            <NumberStates>2</NumberStates>
+            <State>
+              <Text>Fullscreen</Text>
+            </State>
+            <State>
+              <Text>Windowed</Text>
+            </State>
+            <Connection>
+              <ConfigKey>[Master],video_fullscreen</ConfigKey>
+              <BindProperty>value</BindProperty>
+            </Connection>
+          </PushButton>
+        </Children>
+      </WidgetGroup>
+
+    </Children>
+    <Connection>
+      <ConfigKey persist="true">[Skin],show_video_output</ConfigKey>
+      <BindProperty>visible</BindProperty>
+    </Connection>
+  </WidgetGroup>
+</Template>
