@@ -1,16 +1,18 @@
 #pragma once
 
-#include <QOpenGLWidget>
-#include <QOpenGLFunctions>
+#include <QWidget>
 #include <QImage>
 #include <QMutex>
+#include <QTimer>
 #include <memory>
+
+#include "track/track.h"
 
 class VideoDecoder;
 class ControlPushButton;
 class ControlObject;
 
-class VideoWidget : public QOpenGLWidget, protected QOpenGLFunctions {
+class VideoWidget : public QWidget {
     Q_OBJECT
   public:
     explicit VideoWidget(const QString& group, QWidget* parent = nullptr);
@@ -19,7 +21,7 @@ class VideoWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void setGroup(const QString& group) { m_group = group; }
 
   public slots:
-    void slotLoadTrack(const QString& trackPath);
+    void slotLoadTrack(TrackPointer pTrack);
     void slotVideoEnabled(double v);
     void slotVideoFullscreen(double v);
 
@@ -27,17 +29,15 @@ class VideoWidget : public QOpenGLWidget, protected QOpenGLFunctions {
     void fullscreenToggled(bool enabled);
 
   protected:
-    void initializeGL() override;
-    void resizeGL(int w, int h) override;
-    void paintGL() override;
+    void paintEvent(QPaintEvent* event) override;
 
   private slots:
     void slotFrameDecoded(const QImage& frame, double pts);
     void slotPlaybackEnded();
+    void slotTick();
 
   private:
     void findCompanionVideo(const QString& audioPath);
-    void updateTexture();
 
     QString m_group;
     VideoDecoder* m_decoder = nullptr;
@@ -47,9 +47,8 @@ class VideoWidget : public QOpenGLWidget, protected QOpenGLFunctions {
 
     QImage m_currentFrame;
     QMutex m_frameMutex;
-    GLuint m_textureId = 0;
-    bool m_textureDirty = false;
     bool m_hasVideo = false;
+    QTimer* m_repaintTimer = nullptr;
 
     QString m_currentVideoPath;
     QWidget* m_fullscreenWindow = nullptr;

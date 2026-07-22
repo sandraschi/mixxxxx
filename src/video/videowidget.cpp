@@ -4,15 +4,20 @@
 #include "control/controlobject.h"
 #include "moc_videowidget.cpp"
 
+#include <QPainter>
 #include <QFileInfo>
 #include <QDir>
+#include <QVBoxLayout>
 #include <QGuiApplication>
 #include <QScreen>
-#include <QDebug>
+#include "track/track.h"
 
 VideoWidget::VideoWidget(const QString& group, QWidget* parent)
-    : QOpenGLWidget(parent),
+    : QWidget(parent),
       m_group(group) {
+    setAttribute(Qt::WA_OpaquePaintEvent);
+    setMinimumSize(160, 120);
+
     m_pVideoEnabled = std::make_unique<ControlPushButton>(
         ConfigKey(group, "video_enabled"));
     m_pVideoFullscreen = std::make_unique<ControlPushButton>(
@@ -22,22 +27,25 @@ VideoWidget::VideoWidget(const QString& group, QWidget* parent)
             this, &VideoWidget::slotVideoEnabled);
     connect(m_pVideoFullscreen.get(), &ControlPushButton::valueChanged,
             this, &VideoWidget::slotVideoFullscreen);
+
+    m_repaintTimer = new QTimer(this);
+    connect(m_repaintTimer, &QTimer::timeout, this, &VideoWidget::slotTick);
+    m_repaintTimer->start(33); // ~30 fps repaint
 }
 
 VideoWidget::~VideoWidget() {
+    m_repaintTimer->stop();
     if (m_decoder) {
         m_decoder->close();
         m_decoder->deleteLater();
         m_decoder = nullptr;
     }
-    makeCurrent();
-    if (m_textureId) {
-        glDeleteTextures(1, &m_textureId);
-    }
 }
 
-void VideoWidget::slotLoadTrack(const QString& trackPath) {
-    findCompanionVideo(trackPath);
+void VideoWidget::slotLoadTrack(TrackPointer pTrack) {
+    if (pTrack) {
+        findCompanionVideo(pTrack->getLocation());
+    }
 }
 
 void VideoWidget::findCompanionVideo(const QString& audioPath) {
@@ -70,7 +78,6 @@ void VideoWidget::slotVideoEnabled(double v) {
         }
         m_decoder->openFile(m_currentVideoPath);
         m_hasVideo = true;
-        show();
         update();
     } else {
         if (m_decoder) {
@@ -108,9 +115,12 @@ void VideoWidget::slotFrameDecoded(const QImage& frame, double pts) {
     Q_UNUSED(pts);
     QMutexLocker lock(&m_frameMutex);
     m_currentFrame = frame;
-    m_textureDirty = true;
-    lock.unlock();
-    update();
+}
+
+void VideoWidget::slotTick() {
+    if (m_hasVideo && !m_currentFrame.isNull()) {
+        update();
+    }
 }
 
 void VideoWidget::slotPlaybackEnded() {
@@ -118,58 +128,39 @@ void VideoWidget::slotPlaybackEnded() {
     update();
 }
 
-void VideoWidget::initializeGL() {
-    initializeOpenGLFunctions();
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glEnable(GL_TEXTURE_2D);
-    glGenTextures(1, &m_textureId);
-}
-
-void VideoWidget::resizeGL(int w, int h) {
-    glViewport(0, 0, w, h);
-}
-
-void VideoWidget::paintGL() {
-    glClear(GL_COLOR_BUFFER_BIT);
+void VideoWidget::paintEvent(QPaintEvent* event) {
+    Q_UNUSED(event);
+    QPainter p(this);
+    p.setRenderHint(QPainter::SmoothPixmapTransform);
 
     if (!m_hasVideo || m_currentFrame.isNull()) {
+        p.fillRect(rect(), Qt::black);
+        if (!m_currentVideoPath.isEmpty()) {
+            p.setPen(Qt::white);
+            p.drawText(rect(), Qt::AlignCenter, tr("Video Paused"));
+        } else if (!m_group.isEmpty()) {
+            p.setPen(Qt::gray);
+            p.drawText(rect(), Qt::AlignCenter, tr("No Video"));
+        }
         return;
     }
 
-    updateTexture();
+    QMutexLocker lock(&m_frameMutex);
+    QImage frame = m_currentFrame;
+    lock.unlock();
 
-    glBindTexture(GL_TEXTURE_2D, m_textureId);
+    // Aspect-ratio-prescenting render
+    QRect target;
+    double frameAspect = (double)frame.width() / frame.height();
+    double widgetAspect = (double)width() / height();
 
-    float aspect = static_cast<float>(m_currentFrame.width()) / m_currentFrame.height();
-    float winAspect = static_cast<float>(width()) / height();
-
-    float w, h;
-    if (aspect > winAspect) {
-        w = 1.0f;
-        h = winAspect / aspect;
+    if (frameAspect > widgetAspect) {
+        int h = (int)(width() / frameAspect);
+        target = QRect(0, (height() - h) / 2, width(), h);
     } else {
-        h = 1.0f;
-        w = aspect / winAspect;
+        int w = (int)(height() * frameAspect);
+        target = QRect((width() - w) / 2, 0, w, height());
     }
 
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 0); glVertex2f(-w, h);
-    glTexCoord2f(1, 0); glVertex2f(w, h);
-    glTexCoord2f(1, 1); glVertex2f(w, -h);
-    glTexCoord2f(0, 1); glVertex2f(-w, -h);
-    glEnd();
-}
-
-void VideoWidget::updateTexture() {
-    QMutexLocker lock(&m_frameMutex);
-    if (!m_textureDirty) return;
-
-    glBindTexture(GL_TEXTURE_2D, m_textureId);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-                 m_currentFrame.width(), m_currentFrame.height(),
-                 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                 m_currentFrame.bits());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    m_textureDirty = false;
+    p.drawImage(target, frame);
 }

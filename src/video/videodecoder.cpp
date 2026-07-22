@@ -1,4 +1,5 @@
 #include "video/videodecoder.h"
+#include "moc_videodecoder.cpp"
 
 #include <QFileInfo>
 #include <QDebug>

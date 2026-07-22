@@ -1408,7 +1408,8 @@ QWidget* LegacySkinParser::parseVideoWidget(const QDomElement& node) {
 
     QString group = lookupNodeGroup(node);
     VideoWidget* widget = new VideoWidget(group, m_pParent);
-    commonWidgetSetup(node, widget);
+    widget->setObjectName(node.nodeName());
+    widget->setGroup(group);
 
     BaseTrackPlayer* pPlayer = m_pPlayerManager->getPlayer(group);
     if (pPlayer) {
