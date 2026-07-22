@@ -38,6 +38,10 @@ Output: `build\mixxx.exe` (~9.7 MB).
 - **VideoThumbnail**: FFmpeg keyframe extraction, 500-entry LRU cache
 - **Video output panel**: Detachable fullscreen + projector output
 
+### Sprint 1 (v3)
+- **Phase indicator**: `[Channel{N}],phase` CO (0-360°), QPainter arc ring widget with green→yellow→orange→red gradient, `<PhaseIndicator>` skin element in LateNight
+- **Rekordbox export**: `RekordboxExporter` reads Mixxx SQLite, writes Pioneer .pdb via libdjinterop; `[Export],rekordbox_usb_path`, `[Export],export_crate`, `[Channel{N}],export_rekordbox` COs
+
 ## OSC Control Table
 
 Control Mixxxxx via OSC (using [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp)
@@ -53,8 +57,13 @@ or any OSC client). Configure Mixxx Preferences → MIDI/OSC:
 | `/deck/[N]/video_contrast` | 0.0–1.0 | Adjust contrast |
 | `/deck/[N]/video_saturation` | 0.0–1.0 | Adjust saturation |
 | `/video_crossfader` | 0.0–1.0 | Blend video between decks |
+| `/deck/[N]/phase` | 0–360 | Beat phase alignment (degrees) |
+| `/deck/[N]/export_rekordbox` | 0/1 | Trigger Rekordbox export for deck's track |
+| `/export/rekordbox_usb_path` | string | Set USB path for Pioneer export |
+| `/export/export_crate` | 0/1 | Trigger crate export to Rekordbox format |
 
-All six video COs match Mixxx's native ControlObject addresses.
+All video COs match Mixxx's native ControlObject addresses. Export COs are registered
+by `registerExportControls()` in `src/export/export_controls.cpp`.
 
 ## Companion MCP Server
 

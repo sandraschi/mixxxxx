@@ -1,8 +1,8 @@
 # Mixxxxx — Video-Enabled Mixxx Fork
 
-**Status**: Active development (v0.1 scaffolded)
+**Status**: Active development (v0.2 — Sprint 1 shipped)
 **Base**: Mixxx 2.5.6
-**Version**: v0.1
+**Version**: v0.2
 
 ## What It Is
 
@@ -50,6 +50,10 @@ Mixxxxx is a fork of Mixxx 2.5.6 that adds video playback alongside audio decks.
 | `video_contrast` | `[Channel{N}]` | 0 to 3 | Working |
 | `video_saturation` | `[Channel{N}]` | 0 to 3 | Working |
 | `video_crossfader` | `[Mixer]` | -1 to 1 | Working |
+| `phase` | `[Channel{N}]` | 0-360 | Sprint 1 |
+| `rekordbox_usb_path` | `[Export]` | string | Sprint 1 |
+| `export_crate` | `[Export]` | push button | Sprint 1 |
+| `export_rekordbox` | `[Channel{N}]` | push button | Sprint 1 |
 
 ### Known Gaps
 
@@ -59,6 +63,44 @@ Mixxxxx is a fork of Mixxx 2.5.6 that adds video playback alongside audio decks.
 | **No stem separation** | Can't isolate vocals/drums/bass from video tracks | Medium — ONNX Runtime integration, ~400 lines C++ |
 | **No clip extraction** | Can't extract segments from longer videos | Easy — shell out to FFmpeg |
 | **No library thumbnails** | Video files show blank cover art in Mixxx library | Easy — wire VideoThumbnail into existing CoverArt DAO |
+
+## Sprint 1 (Shipped)
+
+### Phase Indicator
+
+Reads `[Channel{N}],beat_distance` (0-1) via `PhaseControl::process()` on each engine callback,
+converts to degrees, writes `[Channel{N}],phase` (0-360). `WPhaseIndicator` widget reads the CO
+at ~30fps via QTimer, renders a QPainter arc ring with color gradient:
+
+- **0°** (aligned): green arc closed, full circle solid green
+- **<90°**: green→yellow arc
+- **90-180°**: orange arc, gap opening at 12 o'clock
+- **>180°**: red arc, pulsing alpha, gap > 50% of circle
+
+Skin element: `<PhaseIndicator>` added to LateNight. Replaces the numeric beat-distance display
+with a visual ring.
+
+**Runtime cost**: single `beat_distance` read + multiply per engine callback; paint every 33ms
+(when visible). Negligible CPU.
+
+### Rekordbox Export
+
+`RekordboxExporter` class reads Mixxx SQLite library database, writes Pioneer .pdb files via
+libdjinterop for USB export. Supports two operations:
+
+- `exportTrack(trackPath, usbPath)` — single track to Pioneer format
+- `exportCrate(crateName, usbPath)` — entire crate (all tracks in a Mixxx crate)
+
+ControlObjects:
+
+| CO | Group | Range | Purpose |
+|----|-------|-------|---------|
+| `rekordbox_usb_path` | `[Export]` | string | Target USB path for Pioneer export |
+| `export_crate` | `[Export]` | push | Trigger export of the configured crate |
+| `export_rekordbox` | `[Channel{N}]` | push button (per-deck) | Trigger export of current deck's track |
+
+**Dependency**: libdjinterop must be linked at build time. Without it, export calls are
+no-ops logged at warning level.
 
 ## Quick Build
 
@@ -75,6 +117,8 @@ ninja
 |----|-------------|------------------|
 | video_enabled | `/deck/{N}/video_enabled` | `mixx_deck(operation="video_enable")` |
 | video_fullscreen | `/deck/{N}/video_fullscreen` | `mixx_deck(operation="video_fullscreen")` |
+| phase | `/deck/{N}/phase` | `mixx_deck(operation="get_phase")` |
+| export_rekordbox | `/deck/{N}/export_rekordbox` | `mixx_deck(operation="export_rekordbox")` |
 
 ## Non-Goals
 
