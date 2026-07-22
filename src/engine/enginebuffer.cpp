@@ -18,6 +18,7 @@
 #include "engine/controls/loopingcontrol.h"
 #include "engine/controls/phasecontrol.h"
 #include "engine/controls/quantizecontrol.h"
+#include "engine/controls/videosynccontrol.h"
 #include "engine/controls/ratecontrol.h"
 #include "engine/enginemixer.h"
 #include "engine/readaheadmanager.h"
@@ -232,6 +233,10 @@ EngineBuffer::EngineBuffer(const QString& group,
     // Create the clock controller
     m_pClockControl = new ClockControl(group, pConfig);
     addControl(m_pClockControl);
+
+    // Video sync controller (engine position → video_audio_clock CO)
+    m_pVideoSyncControl = new VideoSyncControl(group, pConfig);
+    addControl(m_pVideoSyncControl);
 
     // Create the cue controller
     m_pCueControl = new CueControl(group, pConfig);

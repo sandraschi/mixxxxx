@@ -37,6 +37,7 @@ class SyncControl;
 class VinylControlControl;
 class LoopingControl;
 class PhaseControl;
+class VideoSyncControl;
 class ClockControl;
 class CueControl;
 class ReadAheadManager;
@@ -324,6 +325,7 @@ class EngineBuffer : public EngineObject {
     FRIEND_TEST(CueControlTest, SeekOnSetCueCDJ);
     FRIEND_TEST(CueControlTest, SeekOnSetCuePlay);
     CueControl* m_pCueControl;
+    VideoSyncControl* m_pVideoSyncControl = nullptr;
 
     QList<EngineControl*> m_engineControls;
 

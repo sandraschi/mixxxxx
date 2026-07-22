@@ -85,6 +85,7 @@ void VideoWidget::slotVideoEnabled(double v) {
             connect(m_decoder, &VideoDecoder::playbackEnded,
                     this, &VideoWidget::slotPlaybackEnded);
         }
+        m_decoder->setGroup(m_group);
         m_decoder->openFile(m_currentVideoPath);
         m_hasVideo = true;
         update();

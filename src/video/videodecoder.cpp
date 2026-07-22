@@ -1,5 +1,6 @@
 #include "video/videodecoder.h"
 #include "video/videomixer.h"
+#include "control/controlobject.h"
 #include "moc_videodecoder.cpp"
 
 #include <QFileInfo>
@@ -137,6 +138,12 @@ void VideoDecoder::run() {
             continue;
         }
 
+        // Read audio clock from engine (thread-safe via ControlObject)
+        if (!m_group.isEmpty()) {
+            m_audioClock = ControlObject::get(
+                    ConfigKey(m_group, "video_audio_clock"));
+        }
+
         if (!decodePacket()) {
             // EOF or error — seek back to start for looping
             seek(0.0);
@@ -189,21 +196,36 @@ bool VideoDecoder::decodePacket() {
         double pts = m_frame->pts * av_q2d(m_formatCtx->streams[m_videoStreamIndex]->time_base);
         if (pts > 0) m_lastPts = pts;
 
-        // If we're more than one frame behind the audio clock, skip this frame
-        if (m_audioClock > 0 && pts > 0 && (m_audioClock - pts) > (1.0 / m_frameRate)) {
-            av_frame_unref(m_frame);
-            return true;
+        // A/V sync: use audio clock to decide whether to render, skip, or seek
+        if (m_audioClock > 0 && pts > 0) {
+            double drift = m_audioClock - pts;
+            double frameDuration = 1.0 / m_frameRate;
+
+            if (drift > 2.0) {
+                // Way behind audio — seek forward to catch up
+                av_seek_frame(m_formatCtx, m_videoStreamIndex,
+                        static_cast<int64_t>(m_audioClock /
+                                av_q2d(m_formatCtx->streams[m_videoStreamIndex]->time_base)),
+                        AVSEEK_FLAG_BACKWARD);
+                avcodec_flush_buffers(m_codecCtx);
+                av_frame_unref(m_frame);
+                return true;
+            } else if (drift > frameDuration * 3) {
+                // Slightly behind — skip this frame to catch up
+                av_frame_unref(m_frame);
+                return true;
+            } else if (drift < -frameDuration * 3) {
+                // Ahead of audio — throttle
+                lock.unlock();
+                QThread::msleep(static_cast<unsigned long>(
+                        qMin(-drift * 1000.0, 1000.0)));
+                lock.relock();
+            }
         }
 
         QImage img = convertFrameToImage(m_frame);
         lock.unlock();
         emit frameDecoded(img, pts);
-
-        // Sleep to maintain approximate real-time playback
-        if (m_frameRate > 0 && m_speed > 0) {
-            double frameInterval = 1000.0 / (m_frameRate * m_speed);
-            msleep(static_cast<unsigned long>(qMax(1.0, frameInterval)));
-        }
     }
 
     return true;

@@ -8,6 +8,8 @@
 #include <QAtomicInt>
 #include <memory>
 
+#include "preferences/configobject.h"
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -38,6 +40,7 @@ class VideoDecoder : public QThread {
 
     void setSpeed(double speed); // audio-driven speed multiplier
     void setAudioClock(double clockSeconds); // push current audio position
+    void setGroup(const QString& group) { m_group = group; }
 
   signals:
     void frameDecoded(const QImage& frame, double pts);
@@ -67,6 +70,8 @@ class VideoDecoder : public QThread {
     int m_height = 0;
     double m_duration = 0.0;
     double m_frameRate = 30.0;
+
+    QString m_group;
 
     QMutex m_mutex;
     QWaitCondition m_cond;
