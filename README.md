@@ -1,118 +1,121 @@
-# Mixxx
+# Mixxxxx — Video-Enabled Mixxx Fork
 
-[![GitHub latest tag](https://img.shields.io/github/tag/mixxxdj/mixxx.svg)](https://mixxx.org/download)
-[![Packaging status](https://repology.org/badge/tiny-repos/mixxx.svg)](https://repology.org/metapackage/mixxx/versions)
-[![Build status](https://github.com/mixxxdj/mixxx/actions/workflows/build.yml/badge.svg)](https://github.com/mixxxdj/mixxx/actions/workflows/build.yml)
-[![Coverage status](https://coveralls.io/repos/github/mixxxdj/mixxx/badge.svg)](https://coveralls.io/github/mixxxdj/mixxx)
-[![Zulip chat](https://img.shields.io/badge/zulip-join_chat-brightgreen.svg)](https://mixxx.zulipchat.com)
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://mixxx.org/donate)
+![Mixxx](https://img.shields.io/badge/base-Mixxx_2.5.6-orange)
+![Video](https://img.shields.io/badge/video-FFmpeg-blue)
+![Build](https://img.shields.io/badge/build-CMake%2FNinja-green)
+![License](https://img.shields.io/badge/license-GPLv2-blue)
 
-[Mixxx] is Free DJ software that gives you everything you need to perform live
-DJ mixes. Mixxx works on GNU/Linux, Windows, and macOS.
+**Mixxxxx** extends [Mixxx](https://mixxx.org/) — the leading open-source DJ software —
+with real-time video playback via bundled FFmpeg. Load a track, get its companion video
+automatically decoded and mixed alongside the audio.
 
-## Quick Start
+Companion MCP server: [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp) (AI-powered OSC control).
 
-To get started with Mixxx:
+## Quick Build
 
-1. For live use, [download the latest stable version][download-stable].
-2. For experimentation and testing, [download a development release][download-testing].
-3. To live on the bleeding edge, clone the repo: `git clone https://github.com/mixxxdj/mixxx.git`
+```powershell
+tools\windows_release_buildenv.bat
+cd build
+cmake -DCMAKE_TOOLCHAIN_FILE="..\buildenv\mixxx-deps-2.5-x64-windows-release-40c29ff\scripts\buildsystems\vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows-release -G Ninja ..
+ninja
+```
 
-## Bug tracker
+Output: `build\mixxx.exe` (~9.7 MB).
 
-The Mixxx team uses [Github Issues][issues] to manage Mixxx development.
+## Features
 
-Have a bug or feature request? [File a bug on Github][fileabug].
+### v1
+- FFmpeg video decode (avcodec/avformat/swscale) per deck
+- Companion video autoload: `.mp4` / `.mkv` / `.mov` / `.webm`
+- QPainter rendering with aspect-ratio letterbox
+- Fullscreen output to secondary monitor
+- `<VideoWidget>` skin element in LateNight/Deere
 
-Want to get involved in Mixxx development? Assign yourself a bug from the [easy
-bug list][easybugs] and get started!
-Read [CONTRIBUTING](CONTRIBUTING.md) for more information.
+### v2
+- **VideoMixer**: Singleton compositor with crossfader blending
+- **VFX**: Per-deck brightness/contrast/saturation COs
+- **Hardware decode**: D3D11VA + CUDA via `av_hwdevice_ctx_create`
+- **VideoThumbnail**: FFmpeg keyframe extraction, 500-entry LRU cache
+- **Video output panel**: Detachable fullscreen + projector output
 
-## Building Mixxx
+## OSC Control Table
 
-First, open a terminal (on Windows, use "**x64 Native Tools Command Prompt for
-[VS 2022][visualstudio2022]**"), download the mixxx
-source code and navigate to it:
+Control Mixxxxx via OSC (using [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp)
+or any OSC client). Configure Mixxx Preferences → MIDI/OSC:
+- Output port: **11118** (Mixxx sends status here)
+- Input port: **11119** (commands arrive here)
 
-    $ git clone https://github.com/mixxxdj/mixxx.git
-    $ cd mixxx
+| OSC Address | Range | Description |
+|-------------|-------|-------------|
+| `/deck/[N]/video_enabled` | 0/1 | Toggle video on/off for deck |
+| `/deck/[N]/video_fullscreen` | 0/1 | Toggle fullscreen video window |
+| `/deck/[N]/video_brightness` | 0.0–1.0 | Adjust brightness |
+| `/deck/[N]/video_contrast` | 0.0–1.0 | Adjust contrast |
+| `/deck/[N]/video_saturation` | 0.0–1.0 | Adjust saturation |
+| `/video_crossfader` | 0.0–1.0 | Blend video between decks |
 
-Download the required dependencies and set up the build environment by running the
-corresponding command for your operating system:
+All six video COs match Mixxx's native ControlObject addresses.
 
-| Platform | Command | Requirements |
-| -- | ------- | ------------ |
-| Windows | `tools\windows_buildenv.bat` | ~2.5 GB download, ~9 GB disk space |
-| macOS | `source tools/macos_buildenv.sh setup` | ~1.5 GB download, ~3 GB disk space |
-| Debian/Ubuntu | `tools/debian_buildenv.sh setup` | ~200 MB download, ~1 GB disk space |
-| Fedora | `tools/rpm_buildenv.sh setup` | ~200 MB download, ~1 GB disk space |
-| Flatpak | `tools/flatpak_buildenv.sh setup` | ~2.6 GB download, ~5 GB disk space |
-| Other Linux distros | See the [wiki article](https://github.com/mixxxdj/mixxx/wiki/Compiling%20on%20Linux) | |
+## Companion MCP Server
 
-To build Mixxx, run
+[mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp) is a FastMCP 3.4+ server that
+bridges AI assistants (Claude Desktop, Cursor, opencode) to Mixxxxx/Mixxx via OSC:
 
-    $ mkdir build
-    $ cd build
-    $ cmake ..
-    $ cmake --build .
+```bash
+uv sync
+uv run uvicorn mixx_dj_mcp.server:app --port 11116 --reload
+```
 
-There should now be a `mixxx` executable in the current directory that you can
-run. Alternatively, can generate a package using `cpack`.
+Video control commands: `video_enable`, `video_fullscreen` — available as `mixx_deck`
+operations. See the [mixx-dj-mcp README](https://github.com/sandraschi/mixx-dj-mcp)
+for full tool reference and webapp documentation.
 
-For building and installing Mixxx as a Flatpak, check the documentation in [packaging/flatpak/README.md](packaging/flatpak/README.md).
+## Usage Guide
 
-Detailed build instructions for each target OS can be found [on the wiki](https://github.com/mixxxdj/mixxx/wiki#compile-mixxx-from-source-code)
+### Video Container Format
 
-## Documentation
+Supported formats: **MP4**, **MKV**, **MOV**, **WebM**.
 
-For help using Mixxx, there are a variety of options:
+Codec recommendations:
+- **Video**: H.264 (best compatibility), H.265/HEVC (GPU decode), VP9 (WebM)
+- **Audio**: AAC, MP3, PCM
 
-- [Mixxx manual][manual]
-- [Mixxx wiki][wiki]
-- [Hardware Compatibility]
-- [Creating Skins]
+External tools for batch conversion: FFmpeg, HandBrake, Shutter Encoder.
 
-## Translation
+### Companion File Naming
 
-Help to spread Mixxx with translations into more languages, as well as to update and ensure the accuracy of existing translations.
+Place a video file with the **same basename** as your audio track in the **same directory**:
 
-- [Help translate content]
-- [Mixxx i18n wiki]
-- [Mixxx localization forum]
-- [Mixxx glossary]
+```
+Music/
+├── artist - title.mp3        ← audio track
+└── artist - title.mp4        ← autoloaded companion video
+```
 
-## Community
+Priority order (first match wins): `.mp4` > `.mkv` > `.mov` > `.webm`.
 
-Mixxx is a vibrant community of hackers, DJs and artists. To keep track of
-development and community news:
+### Enabling Video in the Skin
 
-- Chat with us on [Zulip][zulip].
-- Follow us on [Mastodon], [Twitter] and [Facebook].
-- Subscribe to the [Mixxx Blog][blog].
-- Post on the [Mixxx forums][discourse].
+1. Select a skin that contains a `<VideoWidget>` element (LateNight or Deere).
+2. The video preview appears in the deck column when a companion file exists.
+3. Use the `video_enabled` toggle (CO or OSC) to show/hide the preview.
+4. Use `video_fullscreen` to send video to a secondary monitor/projector.
+
+### Keyboard Shortcuts (if mapped)
+
+Default OSC bindings from mixx-dj-mcp provide `video_enable` and `video_fullscreen`
+commands. Custom MIDI/OSC mappings can be created in Mixxx Preferences → MIDI/OSC.
+
+## Credits
+
+Mixxxxx is a fork of [Mixxx](https://mixxx.org/) — GPLv2 licensed.
+All Mixxx upstream credits apply. The video module was added as a custom
+extension; no upstream patches have been submitted.
+
+- [Mixxx GitHub](https://github.com/mixxxdj/mixxx)
+- [FFmpeg](https://ffmpeg.org/) — video decoding library (not bundled in upstream Mixxx)
+- [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp) — companion OSC control server
 
 ## License
 
-Mixxx is released under the GPLv2. See the LICENSE file for a full copy of the
-license.
-
-[mixxx]: https://mixxx.org
-[download-stable]: https://mixxx.org/download/#stable
-[download-testing]: https://mixxx.org/download/#testing
-[issues]: https://github.com/mixxxdj/mixxx/issues
-[fileabug]: https://github.com/mixxxdj/mixxx/issues/new/choose
-[mastodon]: https://floss.social/@mixxx
-[twitter]: https://twitter.com/mixxxdj
-[facebook]: https://www.facebook.com/pages/Mixxx-DJ-Software/21723485212
-[blog]: https://mixxx.org/news/
-[manual]: https://manual.mixxx.org/
-[wiki]: https://github.com/mixxxdj/mixxx/wiki
-[visualstudio2022]: https://docs.microsoft.com/visualstudio/install/install-visual-studio?view=vs-2022
-[easybugs]: https://github.com/mixxxdj/mixxx/issues?q=is%3Aopen+is%3Aissue+label%3Aeasy
-[creating skins]: https://mixxx.org/wiki/doku.php/Creating-Skins
-[help translate content]: https://explore.transifex.com/mixxx-dj-software/
-[Mixxx i18n wiki]: https://github.com/mixxxdj/mixxx/wiki/Internationalization
-[Mixxx localization forum]: https://mixxx.discourse.group/c/translation/13
-[hardware compatibility]: https://manual.mixxx.org/2.3/en/hardware/manuals.html
-[zulip]: https://mixxx.zulipchat.com/
-[discourse]: https://mixxx.discourse.group/
+GNU General Public License v2 (same as Mixxx).
