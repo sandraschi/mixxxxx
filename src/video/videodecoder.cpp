@@ -1,0 +1,187 @@
+#include "video/videodecoder.h"
+
+#include <QFileInfo>
+#include <QDebug>
+
+VideoDecoder::VideoDecoder(QObject* parent)
+    : QThread(parent) {
+    avformat_network_init();
+}
+
+VideoDecoder::~VideoDecoder() {
+    close();
+}
+
+void VideoDecoder::openFile(const QString& filePath) {
+    close();
+
+    QMutexLocker lock(&m_mutex);
+    m_filePath = filePath;
+
+    if (avformat_open_input(&m_formatCtx, filePath.toUtf8().constData(), nullptr, nullptr) != 0) {
+        emit openFailed("Cannot open file: " + filePath);
+        return;
+    }
+
+    if (avformat_find_stream_info(m_formatCtx, nullptr) < 0) {
+        emit openFailed("Cannot find stream info");
+        return;
+    }
+
+    m_videoStreamIndex = av_find_best_stream(m_formatCtx, AVMEDIA_TYPE_VIDEO, -1, -1, &m_codec, 0);
+    if (m_videoStreamIndex < 0) {
+        emit openFailed("No video stream found");
+        return;
+    }
+
+    m_codecCtx = avcodec_alloc_context3(m_codec);
+    if (!m_codecCtx) {
+        emit openFailed("Cannot allocate codec context");
+        return;
+    }
+
+    avcodec_parameters_to_context(m_codecCtx,
+        m_formatCtx->streams[m_videoStreamIndex]->codecpar);
+
+    if (avcodec_open2(m_codecCtx, m_codec, nullptr) < 0) {
+        emit openFailed("Cannot open codec");
+        return;
+    }
+
+    m_width = m_codecCtx->width;
+    m_height = m_codecCtx->height;
+    m_duration = m_formatCtx->duration / (double)AV_TIME_BASE;
+    if (m_formatCtx->streams[m_videoStreamIndex]->r_frame_rate.num > 0) {
+        m_frameRate = av_q2d(m_formatCtx->streams[m_videoStreamIndex]->r_frame_rate);
+    }
+
+    m_packet = av_packet_alloc();
+    m_frame = av_frame_alloc();
+    m_swsCtx = sws_getContext(m_width, m_height, AV_PIX_FMT_YUV420P,
+                              m_width, m_height, AV_PIX_FMT_RGBA,
+                              SWS_BILINEAR, nullptr, nullptr, nullptr);
+
+    m_open = true;
+    m_playing.storeRelaxed(1);
+
+    if (!isRunning()) {
+        start(QThread::NormalPriority);
+    }
+}
+
+void VideoDecoder::close() {
+    m_abort.storeRelaxed(1);
+    m_playing.storeRelaxed(0);
+    m_cond.wakeAll();
+
+    if (isRunning()) {
+        quit();
+        wait(3000);
+    }
+
+    QMutexLocker lock(&m_mutex);
+    if (m_swsCtx) { sws_freeContext(m_swsCtx); m_swsCtx = nullptr; }
+    if (m_frame) { av_frame_free(&m_frame); }
+    if (m_packet) { av_packet_free(&m_packet); }
+    if (m_codecCtx) { avcodec_free_context(&m_codecCtx); }
+    if (m_formatCtx) { avformat_close_input(&m_formatCtx); }
+    m_open = false;
+    m_abort.storeRelaxed(0);
+}
+
+void VideoDecoder::pause() {
+    m_playing.storeRelaxed(0);
+}
+
+void VideoDecoder::resume() {
+    m_playing.storeRelaxed(1);
+    m_cond.wakeAll();
+}
+
+void VideoDecoder::seek(double position) {
+    QMutexLocker lock(&m_mutex);
+    if (!m_formatCtx) return;
+    double target = qBound(0.0, position, 1.0) * m_duration;
+    int64_t ts = static_cast<int64_t>(target * AV_TIME_BASE);
+    av_seek_frame(m_formatCtx, -1, ts, AVSEEK_FLAG_BACKWARD);
+    m_lastPts = target;
+}
+
+double VideoDecoder::currentPosition() const {
+    if (m_duration <= 0) return 0.0;
+    return m_lastPts / m_duration;
+}
+
+void VideoDecoder::setSpeed(double speed) {
+    m_speed = qMax(0.25, qMin(4.0, speed));
+}
+
+void VideoDecoder::setAudioClock(double clockSeconds) {
+    m_audioClock = clockSeconds;
+}
+
+void VideoDecoder::run() {
+    while (!m_abort.loadRelaxed()) {
+        if (!m_playing.loadRelaxed()) {
+            m_cond.wait(&m_mutex, 100);
+            continue;
+        }
+
+        if (!decodePacket()) {
+            // EOF or error — seek back to start for looping
+            seek(0.0);
+        }
+    }
+}
+
+bool VideoDecoder::decodePacket() {
+    QMutexLocker lock(&m_mutex);
+    if (!m_formatCtx) return false;
+
+    int ret = av_read_frame(m_formatCtx, m_packet);
+    if (ret < 0) {
+        return false; // EOF or error
+    }
+
+    if (m_packet->stream_index != m_videoStreamIndex) {
+        av_packet_unref(m_packet);
+        return true; // skip non-video packets
+    }
+
+    ret = avcodec_send_packet(m_codecCtx, m_packet);
+    av_packet_unref(m_packet);
+    if (ret < 0) return true;
+
+    ret = avcodec_receive_frame(m_codecCtx, m_frame);
+    if (ret == 0) {
+        double pts = m_frame->pts * av_q2d(m_formatCtx->streams[m_videoStreamIndex]->time_base);
+        if (pts > 0) m_lastPts = pts;
+
+        // If we're more than one frame behind the audio clock, skip this frame
+        if (m_audioClock > 0 && pts > 0 && (m_audioClock - pts) > (1.0 / m_frameRate)) {
+            av_frame_unref(m_frame);
+            return true;
+        }
+
+        QImage img = convertFrameToImage(m_frame);
+        lock.unlock();
+        emit frameDecoded(img, pts);
+
+        // Sleep to maintain approximate real-time playback
+        if (m_frameRate > 0 && m_speed > 0) {
+            double frameInterval = 1000.0 / (m_frameRate * m_speed);
+            msleep(static_cast<unsigned long>(qMax(1.0, frameInterval)));
+        }
+    }
+
+    return true;
+}
+
+QImage VideoDecoder::convertFrameToImage(const AVFrame* frame) {
+    QImage image(m_width, m_height, QImage::Format_RGBA8888);
+    uint8_t* dst[] = { image.bits() };
+    int stride[] = { static_cast<int>(image.bytesPerLine()) };
+
+    sws_scale(m_swsCtx, frame->data, frame->linesize, 0, m_height, dst, stride);
+    return image;
+}

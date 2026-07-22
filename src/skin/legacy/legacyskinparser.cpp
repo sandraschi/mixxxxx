@@ -30,6 +30,7 @@
 #include "waveform/vsyncthread.h"
 #include "waveform/waveformwidgetfactory.h"
 #include "widget/controlwidgetconnection.h"
+#include "video/videowidget.h"
 #include "widget/wbasewidget.h"
 #include "widget/wbattery.h"
 #include "widget/wbeatspinbox.h"
@@ -607,6 +608,8 @@ QList<QWidget*> LegacySkinParser::parseNode(const QDomElement& node) {
         result = wrapWidget(parseEffectButtonParameterName(node));
     } else if (nodeName == "Spinny") {
         result = wrapWidget(parseSpinny(node));
+    } else if (nodeName == "VideoWidget") {
+        result = wrapWidget(parseVideoWidget(node));
     } else if (nodeName == "Time") {
         result = wrapWidget(parseLabelWidget<WTime>(node));
     } else if (nodeName == "RecordingDuration") {
@@ -1389,6 +1392,31 @@ QWidget* LegacySkinParser::parseSpinny(const QDomElement& node) {
     pSpinny->installEventFilter(m_pControllerManager->getControllerLearningEventFilter());
     pSpinny->Init();
     return pSpinny;
+}
+
+QWidget* LegacySkinParser::parseVideoWidget(const QDomElement& node) {
+#ifdef MIXXX_USE_QML
+    if (CmdlineArgs::Instance().isQml()) {
+        return nullptr;
+    }
+#endif
+    if (CmdlineArgs::Instance().getSafeMode()) {
+        WLabel* dummy = new WLabel(m_pParent);
+        dummy->setText(tr("Safe Mode Enabled"));
+        return dummy;
+    }
+
+    QString group = lookupNodeGroup(node);
+    VideoWidget* widget = new VideoWidget(group, m_pParent);
+    commonWidgetSetup(node, widget);
+
+    BaseTrackPlayer* pPlayer = m_pPlayerManager->getPlayer(group);
+    if (pPlayer) {
+        QObject::connect(pPlayer, &BaseTrackPlayer::newTrackLoaded,
+                widget, &VideoWidget::slotLoadTrack);
+    }
+
+    return widget;
 }
 
 QWidget* LegacySkinParser::parseVuMeter(const QDomElement& node) {

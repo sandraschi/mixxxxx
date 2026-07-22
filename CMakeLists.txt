@@ -3602,7 +3602,7 @@ endif()
 
 # FFmpeg support
 # FFmpeg is multimedia library that can be found http://ffmpeg.org/
-find_package(FFMPEG COMPONENTS libavcodec libavformat libavutil libswresample)
+find_package(FFMPEG COMPONENTS libavcodec libavformat libavutil libswresample libswscale)
 default_option(FFMPEG "FFmpeg support (version 4.1.9 or later)" "FFMPEG_FOUND")
 if(FFMPEG)
   if(NOT FFMPEG_FOUND)
@@ -3625,8 +3625,15 @@ if(FFMPEG)
   if(FFMPEG_libswresample_VERSION AND FFMPEG_libswresample_VERSION VERSION_LESS 3.3.100)
     message(FATAL_ERROR "FFmpeg support requires at least version 3.3.100 of libswresample (found: ${FFMPEG_libswresample_VERSION}).")
   endif()
+  if(FFMPEG_libswscale_VERSION AND FFMPEG_libswscale_VERSION VERSION_LESS 5.0.0)
+    message(FATAL_ERROR "FFmpeg support requires at least version 5.0.0 of libswscale (found: ${FFMPEG_libswscale_VERSION}).")
+  endif()
 
-  target_sources(mixxx-lib PRIVATE src/sources/soundsourceffmpeg.cpp)
+  target_sources(mixxx-lib PRIVATE
+    src/sources/soundsourceffmpeg.cpp
+    src/video/videodecoder.cpp
+    src/video/videowidget.cpp
+  )
   target_compile_definitions(mixxx-lib PUBLIC
     __FFMPEG__
     # Needed to build new FFmpeg
