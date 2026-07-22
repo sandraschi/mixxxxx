@@ -1,8 +1,8 @@
 # Mixxxxx — Video-Enabled Mixxx Fork
 
-**Status**: Active development (v0.3 — A/V sync wired)
+**Status**: Active development (v0.4 — exporters wired, setAudioClock cleanup)
 **Base**: Mixxx 2.5.6
-**Version**: v0.3
+**Version**: v0.4
 
 ## What It Is
 
@@ -60,6 +60,7 @@ Mixxxxx is a fork of Mixxx 2.5.6 that adds video playback alongside audio decks.
 | Gap | Impact | Effort to Fix |
 |-----|--------|---------------|
 | ~~**A/V sync unwired** — `setAudioClock()` never called~~ | ~~Scratch/loop/pitch-bend breaks video sync~~ | ✅ **Wired Sprint 3** — VideoSyncControl + 3-tier drift management |
+| ~~**Exporters unwired** — trigger COs had no effect~~ | ~~Pressing export did nothing~~ | ✅ **Fixed v0.4** — ExportController connects all 7 COs to exporters |
 | **No stem separation** | Can't isolate vocals/drums/bass from video tracks | Medium — ONNX Runtime integration, ~400 lines C++ |
 | **No clip extraction** | Can't extract segments from longer videos | Easy — shell out to FFmpeg |
 | **No library thumbnails** | Video files show blank cover art in Mixxx library | Easy — wire VideoThumbnail into existing CoverArt DAO |
