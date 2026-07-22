@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE skin>
+<skin>
+  <manifest>
+    <title>Mixxxxx Video</title>
+    <author>sandraschi</author>
+    <version>1.0.0</version>
+    <description>Video-optimized LateNight variant with video previews, output panel, and projector controls. Requires mixxxxx (video-enabled Mixxx fork).</description>
+    <language>en</language>
+    <license>Creative Commons Attribution, Share-Alike 3.0 Unported</license>
+    <attributes>
+      <!-- Base on LateNight defaults -->
+      <attribute config_key="[App],num_decks">4</attribute>
+      <attribute config_key="[App],num_samplers">16</attribute>
+
+      <!-- Video: enabled by default -->
+      <attribute persist="true" config_key="[Skin],show_video_preview">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_video_output">1</attribute>
+
+      <!-- LateNight settings tuned for video layout -->
+      <attribute persist="true" config_key="[Skin],show_waveforms">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_spinnies">0</attribute>
+      <attribute persist="true" config_key="[Skin],show_coverart">0</attribute>
+      <attribute persist="true" config_key="[Skin],show_hotcues">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_4decks">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_microphone">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_equalizers">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_key_controls">0</attribute>
+      <attribute persist="true" config_key="[Skin],show_track_color">1</attribute>
+      <attribute persist="true" config_key="[Skin],show_beat_count">0</attribute>
+    </attributes>
+  </manifest>
+
+  <!-- Include the full LateNight skin structure -->
+  <include>../LateNight/skin.xml</include>
+
+  <!-- Override: video output panel sits above the toolbar -->
+  <WidgetGroup>
+    <ObjectName>VideoStrip</ObjectName>
+    <Layout>horizontal</Layout>
+    <SizePolicy>me,me</SizePolicy>
+    <MinimumSize>320,240</MinimumSize>
+    <Children>
+      <Template src="skins:LateNight/video_output.xml"/>
+    </Children>
+    <Connection>
+      <ConfigKey persist="true">[Skin],show_video_output</ConfigKey>
+      <BindProperty>visible</BindProperty>
+    </Connection>
+  </WidgetGroup>
+</skin>
