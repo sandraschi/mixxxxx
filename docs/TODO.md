@@ -107,8 +107,9 @@ Est: 2 hours.
 ## P3: OSC server
 
 ### 18. Implement an OSC server in mixxxxx
-Assessment 4. Does not exist at all today. Full design in `docs/IDEAS.md`.
-Est: 1 day bidirectional, plus half a day for a preferences page.
+Assessment 4. **MVP implemented 2026-07-26:** `src/control/oscserver.cpp`, ports
+11119/11118, deck/crossfader/effect mapping, outbound deck CO subscriptions,
+`/mixxxxx/ping` → `/mixxxxx/pong`. Preferences page still TODO.
 
 ### 19. Fix the mixx-dj-mcp test blindness
 `tests/conftest.py` declares `auto_mock_bridge` with `autouse=True`, so no test can

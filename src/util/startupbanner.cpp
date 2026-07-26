@@ -66,7 +66,7 @@ void StartupBanner::print(const CmdlineArgs& args) {
     printColor(args, "\033[38;5;245m", "  ║  ▶ Rekordbox / Serato / VirtualDJ export                     ║\n");
     printColor(args, "\033[38;5;245m", "  ║  ▶ Phase indicator · ONNX stems (optional build)             ║\n");
     printColor(args, "\033[38;5;245m", "  ║  ▶ CLI: --set-control · --dump-controls · --gig-script       ║\n");
-    printColor(args, "\033[38;5;245m", "  ║  ▶ Companion: mixx-dj-mcp (OSC bridge — server pending)       ║\n");
+    printColor(args, "\033[38;5;245m", "  ║  ▶ Companion: mixx-dj-mcp (OSC on 11118/11119)                ║\n");
     printColor(args, "\033[38;5;214m", "  ╚══════════════════════════════════════════════════════════════╝\n");
     fputc('\n', stderr);
 

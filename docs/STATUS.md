@@ -82,8 +82,8 @@ Video requires a legacy skin. `parseVideoWidget` returns nullptr under QML.
 |---|---|---|
 | ControlObjects for all features | Works | inspectable via Developer Tools |
 | MIDI / HID mapping | Works | upstream, untouched |
-| **OSC server** | **Absent** | zero OSC code in `src/`; TODO 18 |
-| mixx-dj-mcp OSC bridge | Sends into a void | UDP never errors, tools report false success |
+| **OSC server** | **Works** (MVP) | UDP 11119 in, 11118 out; `/mixxxxx/ping` heartbeat |
+| mixx-dj-mcp OSC bridge | **Works when Mixxx running** | probes `/mixxxxx/ping`, expects `/mixxxxx/pong` |
 
 ## Known build note
 

@@ -753,6 +753,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/control/controllinpotmeter.cpp
   src/control/controllogpotmeter.cpp
   src/control/controlobject.cpp
+  src/control/oscserver.cpp
   src/control/controlobjectscript.cpp
   src/control/controlpotmeter.cpp
   src/control/controlproxy.cpp
@@ -1391,6 +1392,7 @@ target_precompile_headers(mixxx-lib PUBLIC
   src/control/controllogpotmeter.h
   src/control/controlmodel.h
   src/control/controlobject.h
+  src/control/oscserver.h
   src/control/controlobjectscript.h
   src/control/controlpotmeter.h
   src/control/controlproxy.h
@@ -2155,6 +2157,7 @@ if(BUILD_TESTING)
     src/test/controllerscriptenginelegacy_test.cpp
     src/test/controlobjecttest.cpp
     src/test/controlcli_test.cpp
+    src/test/oscserver_test.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
     src/test/controlpotmetertest.cpp

@@ -14,6 +14,7 @@
 #include "export/export_controls.h"
 #endif
 #include "control/controlindicatortimer.h"
+#include "control/oscserver.h"
 #include "controllers/controllermanager.h"
 #include "controllers/keyboard/keyboardeventfilter.h"
 #include "database/mixxxdb.h"
@@ -698,6 +699,10 @@ void CoreServices::initialize(QApplication* pApp) {
         }
     }
 
+    m_pOscServer = std::make_unique<mixxx::OscServer>(
+            m_pPlayerManager.get(), pConfig, this);
+    m_pOscServer->start();
+
     m_isInitialized = true;
 }
 
@@ -805,6 +810,11 @@ void CoreServices::finalize() {
 
     Timer t("CoreServices::~CoreServices");
     t.start();
+
+    if (m_pOscServer) {
+        m_pOscServer->stop();
+        m_pOscServer.reset();
+    }
 
     // Stop all pending library operations
     qDebug() << t.elapsed(false).debugMillisWithUnit() << "stopping pending Library tasks";
