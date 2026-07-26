@@ -147,7 +147,8 @@ currently the only automation entry point, and it is thin. Highest-value flags:
 - `--dump-controls` then exit, listing every registered CO **Implemented 2026-07-26**
 - `--gig-script <path>` line-based gig setup (set/load/video/queue-crate/autodj) **Implemented 2026-07-26**
 - `--no-banner` suppress Mixxxxx startup banner **Implemented 2026-07-26**
-- `--export-crate <name> --export-format <engine|serato|virtualdj> --export-path <dir>` then exit
+- `--export-crate <name> --export-format <engine|serato|virtualdj> --export-path <dir>` then exit **Implemented 2026-07-26**
+- `--import-crate <path> [--into-crate <name>]` (M3U/PLS/CSV, `.vdjfolder`, Serato `.crate`) **Implemented 2026-07-26**
 - `--video-screen <n>` to pick the fullscreen output monitor
 - `--load-video <deck> <path>` to override companion resolution
 

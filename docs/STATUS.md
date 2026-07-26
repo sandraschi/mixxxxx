@@ -68,7 +68,9 @@ Video requires a legacy skin. `parseVideoWidget` returns nullptr under QML.
 | Trigger COs registered | Works | 7 push buttons, `coreservices.cpp:668` |
 | Triggers connected to exporters | Works | `ExportController` ctor |
 | Per-deck export | **Works** (was broken) | resolves real track path via PlayerManager |
-| Crate export | **Absent, fails loudly** | no crate selection exists; TODO 12 |
+| Crate export (GUI CO) | **Absent, fails loudly** | no crate selection via CO; use `--export-crate` CLI |
+| Crate export (CLI) | **Works** | `--export-crate --export-format --export-path` |
+| Crate import (CLI) | **Works** (playlist paths) | `--import-crate`; VDJ `.vdjfolder`, Serato `.crate`; not full Serato library |
 | Hot cue export | **Works** (was broken) | uses `CueType::HotCue`, not literal 2 |
 | Serato exporter class | Works as a library | not reachable from a trigger |
 | VirtualDJ exporter class | Works as a library | writes database.xml, Camelot conversion |

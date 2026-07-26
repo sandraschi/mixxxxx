@@ -27,6 +27,10 @@
 #include "util/cmdlineargs.h"
 #include "util/console.h"
 #include "util/controlcli.h"
+#ifdef __ENGINEPRIME__
+#include "util/exportcli.h"
+#endif
+#include "util/importcli.h"
 #include "util/logging.h"
 #include "util/sandbox.h"
 #include "util/startupbanner.h"
@@ -93,6 +97,53 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
         if (args.getDumpControls()) {
             const int count = mixxx::ControlCli::dumpControlsToStdout();
             qInfo() << "Dumped" << count << "controls";
+            return 0;
+        }
+
+#ifdef __ENGINEPRIME__
+        if (args.hasExportCrateRequest()) {
+            if (args.getExportFormat().isEmpty() || args.getExportPath().isEmpty()) {
+                qCritical() << "Export requires --export-crate, --export-format, and --export-path.";
+                return kParseCmdlineArgsErrorExitCode;
+            }
+            mixxx::ExportFormat format;
+            QString formatError;
+            if (!mixxx::ExportCli::parseExportFormat(
+                        args.getExportFormat(), &format, &formatError)) {
+                qCritical().noquote() << formatError;
+                return kParseCmdlineArgsErrorExitCode;
+            }
+            QString exportError;
+            const bool ok = mixxx::ExportCli::executeExportCrate(
+                    args.getExportCrateName(),
+                    format,
+                    args.getExportPath(),
+                    args.getSettingsPath(),
+                    &exportError);
+            if (!ok) {
+                qCritical().noquote() << exportError;
+                return kFatalErrorOnStartupExitCode;
+            }
+            qInfo().noquote() << QStringLiteral(
+                    "Exported crate '%1' to %2 (%3).")
+                                             .arg(args.getExportCrateName())
+                                             .arg(args.getExportPath())
+                                             .arg(args.getExportFormat());
+            return 0;
+        }
+#endif
+
+        if (args.hasImportCrateRequest()) {
+            QString importError;
+            const bool ok = mixxx::ImportCli::executeImportCrate(
+                    args.getImportCratePath(),
+                    args.getImportIntoCrateName(),
+                    pCoreServices->getTrackCollectionManager().get(),
+                    &importError);
+            if (!ok) {
+                qCritical().noquote() << importError;
+                return kFatalErrorOnStartupExitCode;
+            }
             return 0;
         }
 

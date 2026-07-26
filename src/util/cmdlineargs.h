@@ -88,6 +88,29 @@ class CmdlineArgs final {
         return m_noBanner;
     }
 
+    bool hasExportCrateRequest() const {
+        return m_hasExportCrateRequest;
+    }
+    const QString& getExportCrateName() const {
+        return m_exportCrateName;
+    }
+    const QString& getExportFormat() const {
+        return m_exportFormat;
+    }
+    const QString& getExportPath() const {
+        return m_exportPath;
+    }
+
+    bool hasImportCrateRequest() const {
+        return m_hasImportCrateRequest;
+    }
+    const QString& getImportCratePath() const {
+        return m_importCratePath;
+    }
+    const QString& getImportIntoCrateName() const {
+        return m_importIntoCrateName;
+    }
+
     void setScaleFactor(double scaleFactor) {
         m_scaleFactor = scaleFactor;
     }
@@ -132,4 +155,11 @@ class CmdlineArgs final {
     QString m_gigScriptPath;
     bool m_dumpControls;
     bool m_noBanner;
+    bool m_hasExportCrateRequest;
+    QString m_exportCrateName;
+    QString m_exportFormat;
+    QString m_exportPath;
+    bool m_hasImportCrateRequest;
+    QString m_importCratePath;
+    QString m_importIntoCrateName;
 };

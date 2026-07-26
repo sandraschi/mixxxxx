@@ -3,6 +3,20 @@
 Written 2026-07-26. Research and feasibility, no implementation yet.
 Task brief for implementation is in `docs/HANDOFF-RANE-MAPPING.md`.
 
+## Target hardware (this fleet)
+
+| Device | Role |
+|---|---|
+| **Rane Seventy-Two MKII** | Battle mixer, USB audio, USB MIDI, dual DVS inputs |
+| **Rane Twelve MKII ×2** | Motorised deck controllers (not traditional vinyl turntables) |
+
+Both deck units must be supported. That is **two problems**, not one mapping file:
+
+1. **Mixer** — faders, EQ, crossfader, pads, library nav (`res/controllers/Rane-Seventy-Two-MKII.*`).
+2. **Twelve MKII decks** — platter/transport control; forum WIP exists for Rane Twelve MK2
+   (turntable lineage). Treat as a follow-on mapping or HID investigation, not something the
+   Seventy-Two XML alone covers.
+
 ## Current support: none
 
 - No Rane mapping of any kind in `res/controllers` (142 mappings present; the only
@@ -59,23 +73,49 @@ laptop screen. This is not a gap worth closing.
 
 ## Recommended order of work
 
-**DVS first, MIDI second.** For a battle mixer plus turntables, timecode is the
-high-value path and needs no mapping at all:
+**Audio + deck control first, mixer MIDI second.** MIDI mapping is additive, not blocking.
+
+### Path A — DVS / timecode (fastest path to playing)
+
+If the Twelves (or control vinyl through the 72 phono inputs) output timecode into the
+Seventy-Two's DVS channels, Mixxx can control decks with **no mapping file**:
 
 1. Install the Rane Windows driver.
-2. Select the mixer as the sound device in Mixxx, confirm the API in the dropdown.
-3. Route the mixer's DVS inputs to Mixxx vinyl control.
-4. Confirm both decks track a control record.
+2. Select the mixer as the sound device in Mixxx; confirm WASAPI or ASIO in the dropdown.
+3. Route both DVS inputs to Mixxx vinyl control (`VINYLCONTROL=ON` in this build).
+4. Confirm both decks track.
 
-That is a working setup on its own. The MIDI mapping then adds pads, loops, and
-library navigation on top of something that already functions.
+That is roughly half a day of routing, versus two to three days of MIDI capture and mapping.
+**This is not the same as spinning real vinyl** — with two Twelve MKII units you may be sending
+timecode from the deck controllers rather than from turntables. Verify what each Twelve outputs
+in your Serato/VDJ profile before assuming phono→DVS wiring.
+
+### Path B — MIDI mapping (additive)
+
+Once audio/deck control works, capture the Seventy-Two USB MIDI (`--controller-debug`) and
+build `res/controllers/Rane-Seventy-Two-MKII.*`. VirtualDJ already ships a full Seventy-Two
+MKII map — use it as a **reference for bulk import** (see below), not as copy-paste CC numbers
+without verification.
+
+### Bulk import from VirtualDJ Pro
+
+VDJ device maps live under the VDJ settings folder (device XML + script fragments per controller).
+Planned workflow for this fork:
+
+1. Locate the Seventy-Two MKII map in the VDJ profile on the gig machine.
+2. Capture raw MIDI from `--controller-debug` and reconcile against the VDJ map structure.
+3. Port verified bindings into Mixxx XML/JS; leave unverified rows in `docs/rane-72-midi-map.md`.
+
+There is **no automatic VDJ→Mixxx mapping converter** yet; bulk import means systematic porting
+with the VDJ map as the checklist, not a one-click import.
 
 ## Effort estimate
 
 | Phase | Est |
 |---|---|
-| Audio and DVS working | half a day, mostly driver and routing fiddling |
-| MIDI log capture, every control | 1 hour, unavoidably manual |
+| Audio + DVS (both decks) | half a day, driver and routing |
+| Twelve MKII deck support | unknown — verify DVS/HID; forum WIP for Twelve MK2 |
+| MIDI log capture, Seventy-Two | 1 hour, manual |
 | Faders, EQ, trim, crossfader, pads mapped | 1 day |
 | LED feedback and pad mode pages | 1 to 2 days |
 | FX section | blocked by firmware, document as a gap |

@@ -69,6 +69,8 @@ CmdlineArgs::CmdlineArgs()
           m_logMaxFileSize(mixxx::kLogMaxFileSizeDefault),
           m_dumpControls(false),
           m_noBanner(false),
+          m_hasExportCrateRequest(false),
+          m_hasImportCrateRequest(false),
 // We are not ready to switch to XDG folders under Linux, so keeping $HOME/.mixxx as preferences folder. see #8090
 #ifdef MIXXX_SETTINGS_PATH
           m_settingsPath(QDir::homePath().append("/").append(MIXXX_SETTINGS_PATH))
@@ -394,6 +396,49 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
                             : QString());
     parser.addOption(noBanner);
 
+    const QCommandLineOption exportCrate(
+            QStringLiteral("export-crate"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Export a Mixxx crate, then exit. "
+                                      "Requires --export-format and --export-path.")
+                            : QString(),
+            QStringLiteral("name"));
+    parser.addOption(exportCrate);
+
+    const QCommandLineOption exportFormat(
+            QStringLiteral("export-format"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Export target: engine, serato, or virtualdj.")
+                            : QString(),
+            QStringLiteral("format"));
+    parser.addOption(exportFormat);
+
+    const QCommandLineOption exportPath(
+            QStringLiteral("export-path"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Directory to write exported crate/library files.")
+                            : QString(),
+            QStringLiteral("dir"));
+    parser.addOption(exportPath);
+
+    const QCommandLineOption importCrate(
+            QStringLiteral("import-crate"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Import a playlist/crate file into Mixxx, then exit. "
+                                      "Supports M3U/PLS/CSV, .vdjfolder, Serato .crate.")
+                            : QString(),
+            QStringLiteral("path"));
+    parser.addOption(importCrate);
+
+    const QCommandLineOption importIntoCrate(
+            QStringLiteral("into-crate"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Destination Mixxx crate name for --import-crate. "
+                                      "Defaults to the source file base name.")
+                            : QString(),
+            QStringLiteral("name"));
+    parser.addOption(importIntoCrate);
+
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -548,6 +593,19 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
     }
 
     m_noBanner = parser.isSet(noBanner);
+
+    m_hasExportCrateRequest = parser.isSet(exportCrate);
+    if (m_hasExportCrateRequest) {
+        m_exportCrateName = parser.value(exportCrate);
+        m_exportFormat = parser.value(exportFormat);
+        m_exportPath = parser.value(exportPath);
+    }
+
+    m_hasImportCrateRequest = parser.isSet(importCrate);
+    if (m_hasImportCrateRequest) {
+        m_importCratePath = parser.value(importCrate);
+        m_importIntoCrateName = parser.value(importIntoCrate);
+    }
 
     return true;
 }

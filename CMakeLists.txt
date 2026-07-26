@@ -1188,6 +1188,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/util/clipboard.cpp
   src/util/cmdlineargs.cpp
   src/util/controlcli.cpp
+  src/util/importcli.cpp
   src/util/color/color.cpp
   src/util/color/colorpalette.cpp
   src/util/color/predefinedcolorpalettes.cpp
@@ -2157,6 +2158,7 @@ if(BUILD_TESTING)
     src/test/controllerscriptenginelegacy_test.cpp
     src/test/controlobjecttest.cpp
     src/test/controlcli_test.cpp
+    src/test/exportcli_test.cpp
     src/test/oscserver_test.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
@@ -2568,7 +2570,8 @@ if(ENGINEPRIME)
     src/export/export_controls.cpp
     src/export/rekordboxexporter.cpp
     src/export/seratoexporter.cpp
-    src/export/virtualdjexporter.cpp)
+    src/export/virtualdjexporter.cpp
+    src/util/exportcli.cpp)
   target_compile_definitions(mixxx-lib PUBLIC __ENGINEPRIME__)
 endif()
 

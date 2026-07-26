@@ -27,17 +27,19 @@ guessed MIDI addresses is worse than an empty one, because it looks finished.
 
 ## 1. What you are building
 
-Two files, following Mixxx's naming convention exactly:
+**Primary:** Seventy-Two MKII mixer mapping:
 
 ```
 res/controllers/Rane-Seventy-Two-MKII.midi.xml
 res/controllers/Rane-Seventy-Two-MKII-scripts.js
 ```
 
-Nothing else. **Do not touch `src/`.** This is a data and glue task, not an engine
-change. In particular do not touch `src/video/`, `src/export/`, or
-`src/engine/controls/videosynccontrol.cpp`, which were fixed earlier today and are
-covered by tests.
+**Also in scope (separate deliverable):** two **Rane Twelve MKII** motorised decks — not vinyl
+turntables. They need their own capture/mapping or DVS/timecode routing verification. Do not
+assume the mixer map controls platter transport on the Twelves.
+
+Nothing under `src/` for mapping work. In particular do not touch `src/video/`, `src/export/`,
+or `src/engine/controls/videosynccontrol.cpp`.
 
 ---
 
@@ -136,8 +138,8 @@ volume, EQ knobs to their filter COs, crossfader to `[Master],crossfader`.
 
 ### Target ControlObjects
 
-Mixxx has no `--dump-controls` flag yet (that is `docs/TODO.md` item 24). Until it
-does, use the Developer Tools ControlObject browser to find target names:
+Mixxx has `--dump-controls` (prints every CO, then exits). Use it or the Developer Tools
+ControlObject browser to find target names:
 
 ```powershell
 & "D:\Dev\repos\mixxxxx\build\mixxx.exe" --developer
@@ -189,11 +191,23 @@ Ship criteria for a first release:
 ## 8. Explicitly out of scope
 
 - The touchscreen and waveform display. Proprietary, not worth it.
-- Any change under `src/`.
-- DVS and timecode setup. That is audio routing and configuration, not a mapping,
-  and it is covered in `docs/RANE-SEVENTY-TWO-MKII.md`. It is also the higher value
-  path, so if the goal is "get playing tonight", do that first and come back to this.
+- Any change under `src/` for mapping (CLI/export/import under `src/util/` is fine).
+- **Full Serato library import** — Serato DJ has tightened database access in recent versions;
+  Mixxx reads Serato **metadata tags** on tracks and can import **`.crate` track lists** via
+  `--import-crate`, but not a locked Serato library DB over CLI.
 - Solving the FX section. Document it, do not fight the firmware.
+
+## 8b. Play tonight vs ship a mapping
+
+If the goal is **playing on the Seventy-Two + two Twelve MKII units**, do **audio/DVS first**
+(Rane driver, mixer as sound device, both DVS paths into vinyl control). That needs no mapping.
+Mixer MIDI and VDJ map porting are **additive**. See `docs/RANE-SEVENTY-TWO-MKII.md`.
+
+## 8c. Bulk import from VirtualDJ Pro
+
+Use the existing VDJ Seventy-Two MKII map as a **checklist** while capturing MIDI with
+`--controller-debug`. Port verified rows only. No guessed CC numbers. Track progress in
+`docs/rane-72-midi-map.md`.
 
 ---
 
