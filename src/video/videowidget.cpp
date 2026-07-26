@@ -8,14 +8,20 @@
 #include "util/controlcli.h"
 #include "moc_videowidget.cpp"
 
+#include <cmath>
+
 #include <QPainter>
 #include <QFileInfo>
 #include <QDir>
 #include <QGuiApplication>
+#include <QPixmap>
 #include <QRegularExpression>
 #include <QScreen>
 #include <QVBoxLayout>
+#include "library/coverartcache.h"
+#include "library/coverart.h"
 #include "track/track.h"
+#include "video/videofallback.h"
 
 VideoWidget::VideoWidget(const QString& group, QWidget* parent)
     : QWidget(parent),
@@ -53,6 +59,17 @@ VideoWidget::VideoWidget(const QString& group, QWidget* parent)
     m_pBeatFxStrobeAmount->set(1.0);
     m_pBeatFxZoomAmount->set(1.0);
 
+    m_pVideoFallback = std::make_unique<ControlPushButton>(
+        ConfigKey(group, "video_fallback"), true, 1.0);
+
+    CoverArtCache* pCoverCache = CoverArtCache::instance();
+    if (pCoverCache) {
+        connect(pCoverCache,
+                &CoverArtCache::coverFound,
+                this,
+                &VideoWidget::slotCoverFound);
+    }
+
     m_repaintTimer = new QTimer(this);
     connect(m_repaintTimer, &QTimer::timeout, this, &VideoWidget::slotTick);
     m_repaintTimer->start(33); // ~30 fps repaint
@@ -60,6 +77,7 @@ VideoWidget::VideoWidget(const QString& group, QWidget* parent)
 
 VideoWidget::~VideoWidget() {
     m_repaintTimer->stop();
+    stopFallback();
     if (m_decoder) {
         m_decoder->close();
         m_decoder->deleteLater();
@@ -68,8 +86,18 @@ VideoWidget::~VideoWidget() {
 }
 
 void VideoWidget::slotLoadTrack(TrackPointer pTrack) {
+    m_pTrack = pTrack;
     if (pTrack) {
+        stopFallback();
+        m_fallbackCover = QImage();
         findCompanionVideo(pTrack->getLocation());
+        if (m_currentVideoPath.isEmpty()) {
+            tryStartFallback();
+        }
+    } else {
+        stopFallback();
+        m_fallbackCover = QImage();
+        m_currentVideoPath.clear();
     }
 }
 
@@ -103,23 +131,98 @@ void VideoWidget::findCompanionVideo(const QString& audioPath) {
         }
     }
     m_currentVideoPath.clear();
+    if (m_pVideoEnabled && m_pVideoEnabled->get() > 0.0) {
+        tryStartFallback();
+    }
+}
+
+int VideoWidget::deckIndex() const {
+    static const QRegularExpression kDeckGroup(
+            QStringLiteral("^(\\[Channel(\\d+)\\])$"));
+    const QRegularExpressionMatch match = kDeckGroup.match(m_group);
+    return match.hasMatch() ? match.captured(1).toInt() : -1;
+}
+
+void VideoWidget::stopFallback() {
+    if (!m_usingFallback) {
+        return;
+    }
+    const int deck = deckIndex();
+    if (deck > 0) {
+        VideoMixer::instance().unregisterDecoder(deck);
+    }
+    m_usingFallback = false;
+}
+
+void VideoWidget::tryStartFallback() {
+    if (!m_pVideoFallback || m_pVideoFallback->get() <= 0.0) {
+        return;
+    }
+    if (!m_currentVideoPath.isEmpty() || !m_pTrack) {
+        return;
+    }
+    if (m_fallbackCover.isNull()) {
+        CoverArtCache::requestUncachedCover(this, m_pTrack, 1024);
+        return;
+    }
+    const int deck = deckIndex();
+    if (deck > 0) {
+        VideoMixer::instance().registerDecoder(deck, nullptr);
+    }
+    m_usingFallback = true;
+    m_hasVideo = true;
+    updateFallbackFrame();
+}
+
+void VideoWidget::updateFallbackFrame() {
+    if (!m_usingFallback || m_fallbackCover.isNull()) {
+        return;
+    }
+    const double clock = ControlObject::get(ConfigKey(m_group, "video_audio_clock"));
+    const double phase = clock > 0.0 ? std::fmod(clock / 30.0, 1.0) : 0.0;
+    QImage frame = VideoFallback::renderKenBurns(m_fallbackCover, phase);
+    const int deck = deckIndex();
+    if (deck > 0) {
+        VideoMixer::instance().pushFrame(deck, frame, clock);
+    }
+    QMutexLocker lock(&m_frameMutex);
+    m_currentFrame = frame;
+}
+
+void VideoWidget::slotCoverFound(const QObject* requester,
+        const CoverInfo& coverInfo,
+        const QPixmap& pixmap) {
+    Q_UNUSED(coverInfo);
+    if (requester != this || pixmap.isNull()) {
+        return;
+    }
+    m_fallbackCover = pixmap.toImage();
+    if (m_pVideoEnabled && m_pVideoEnabled->get() > 0.0 && m_currentVideoPath.isEmpty()) {
+        tryStartFallback();
+    }
 }
 
 void VideoWidget::slotVideoEnabled(double v) {
     if (v > 0.0) {
-        if (m_currentVideoPath.isEmpty()) return;
-        if (!m_decoder) {
-            m_decoder = new VideoDecoder(this);
-            connect(m_decoder, &VideoDecoder::frameDecoded,
-                    this, &VideoWidget::slotFrameDecoded);
-            connect(m_decoder, &VideoDecoder::playbackEnded,
-                    this, &VideoWidget::slotPlaybackEnded);
+        if (!m_currentVideoPath.isEmpty()) {
+            stopFallback();
+            if (!m_decoder) {
+                m_decoder = new VideoDecoder(this);
+                connect(m_decoder, &VideoDecoder::frameDecoded,
+                        this, &VideoWidget::slotFrameDecoded);
+                connect(m_decoder, &VideoDecoder::playbackEnded,
+                        this, &VideoWidget::slotPlaybackEnded);
+            }
+            m_decoder->setGroup(m_group);
+            m_decoder->openFile(m_currentVideoPath);
+            m_hasVideo = true;
+            update();
+            return;
         }
-        m_decoder->setGroup(m_group);
-        m_decoder->openFile(m_currentVideoPath);
-        m_hasVideo = true;
+        tryStartFallback();
         update();
     } else {
+        stopFallback();
         if (m_decoder) {
             m_decoder->pause();
         }
@@ -158,6 +261,9 @@ void VideoWidget::slotFrameDecoded(const QImage& frame, double pts) {
 }
 
 void VideoWidget::slotTick() {
+    if (m_usingFallback) {
+        updateFallbackFrame();
+    }
     if (m_hasVideo && !m_currentFrame.isNull()) {
         update();
     }
@@ -187,6 +293,9 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
         if (!m_currentVideoPath.isEmpty()) {
             p.setPen(Qt::white);
             p.drawText(rect(), Qt::AlignCenter, tr("Video Paused"));
+        } else if (m_pVideoFallback && m_pVideoFallback->get() > 0.0 && m_pTrack) {
+            p.setPen(Qt::gray);
+            p.drawText(rect(), Qt::AlignCenter, tr("Loading fallback..."));
         } else if (!m_group.isEmpty()) {
             p.setPen(Qt::gray);
             p.drawText(rect(), Qt::AlignCenter, tr("No Video"));
@@ -209,10 +318,9 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
         frame = VideoMixer::instance().applySaturation(frame, saturation);
     }
 
-    const QRegularExpressionMatch deckMatch =
-            QRegularExpression(QStringLiteral(R"(\[Channel(\d+)\])")).match(m_group);
-    if (deckMatch.hasMatch()) {
-        frame = VideoFxChain::applyForDeck(deckMatch.captured(1).toInt(), frame);
+    const int deck = deckIndex();
+    if (deck > 0) {
+        frame = VideoFxChain::applyForDeck(deck, frame);
     }
 
     renderImage(p, frame);

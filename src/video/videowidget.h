@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "track/track.h"
+#include "library/coverart.h"
 
 class VideoDecoder;
 class ControlPushButton;
@@ -37,11 +38,19 @@ class VideoWidget : public QWidget {
     void slotFrameDecoded(const QImage& frame, double pts);
     void slotPlaybackEnded();
     void slotTick();
+    void slotCoverFound(const QObject* requester,
+            const CoverInfo& coverInfo,
+            const QPixmap& pixmap);
 
   private:
     void findCompanionVideo(const QString& audioPath);
+    int deckIndex() const;
+    void stopFallback();
+    void tryStartFallback();
+    void updateFallbackFrame();
 
     QString m_group;
+    TrackPointer m_pTrack;
     VideoDecoder* m_decoder = nullptr;
 
     std::unique_ptr<ControlPushButton> m_pVideoEnabled;
@@ -54,7 +63,10 @@ class VideoWidget : public QWidget {
     std::unique_ptr<ControlPotmeter> m_pBeatFxDivision;
     std::unique_ptr<ControlPotmeter> m_pBeatFxStrobeAmount;
     std::unique_ptr<ControlPotmeter> m_pBeatFxZoomAmount;
+    std::unique_ptr<ControlPushButton> m_pVideoFallback;
 
+    QImage m_fallbackCover;
+    bool m_usingFallback = false;
     QImage m_currentFrame;
     QMutex m_frameMutex;
     bool m_hasVideo = false;

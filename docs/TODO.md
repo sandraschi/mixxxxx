@@ -179,7 +179,13 @@ Est: 1–2 days for remaining effects + UI.
 
 ### 26. Video fallback chain
 Solves the actual adoption blocker: most libraries have no companion video.
-Est: 4 to 5 days including BPM-matched loop playback.
+
+**Partial 2026-07-27 (step 4):** `VideoFallback::renderKenBurns()` — album art
+slow zoom/pan when no companion video; wired in `VideoWidget` at 30fps;
+CO `[ChannelN],video_fallback` (default 1). `videofallback_test.cpp` (3 cases).
+
+Remaining chain steps: pool loops (2), generative visuals (3), polish (5).
+Est: 3 to 4 days for steps 2–3 + BPM-matched loop playback.
 
 ### 27. NDI output
 Turns the project from a closed box into a video source for real rigs.

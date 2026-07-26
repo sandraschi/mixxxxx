@@ -5,6 +5,12 @@
 Changes below are on [sandraschi/mixxxxx](https://github.com/sandraschi/mixxxxx) atop
 Mixxx 2.5.6. Upstream Mixxx changelog follows.
 
+### 2026-07-27
+
+#### Video
+- **VideoFxChain** — beat-locked strobe + zoom pump (division CO, seek-stable beat index)
+- **VideoFallback** — album-art Ken Burns when no companion video (`video_fallback` CO)
+
 ### 2026-07-26
 
 #### Documentation

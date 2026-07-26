@@ -1,9 +1,9 @@
 # Mixxxxx Status
 
-Last verified against source: 2026-07-26 (late session), after NDI/SKINS doc pass and Help webapp.
-Base: Mixxx 2.5.6, branch `video`, 23 commits ahead of tag `2.5.6`.
+Last verified against source: 2026-07-27, after album-art Ken Burns fallback (TODO 26 step 4).
+Base: Mixxx 2.5.6, branch `video`, 26 commits ahead of tag `2.5.6`.
 Build: RelWithDebInfo, Ninja, vcpkg x64-windows-release.
-Latest push: `e429e2aaf9` on `origin/video`.
+Latest push: see `git log -1` on `origin/video`.
 
 Verification standard: everything marked **Works** below has either been traced
 from call site to effect, or is covered by a passing test, or both. Nothing is
@@ -19,9 +19,10 @@ Status values:
 ## Test state
 
 ```
-mixxx-test.exe                            873 tests, all passing
+mixxx-test.exe                            876 tests (872 pass; 4 pre-existing ControllerScriptEngineLegacyTimer failures)
 mixxx-test.exe --gtest_filter=VideoMixerTest.*     7 tests, all passing
 mixxx-test.exe --gtest_filter=VideoFxChainTest.*   9 tests, all passing
+mixxx-test.exe --gtest_filter=VideoFallbackTest.*  3 tests, all passing
 mixxx-test.exe --gtest_filter=OscServerTest.*      2 tests, all passing
 ```
 
@@ -44,7 +45,8 @@ was caused by this fork and is now fixed. See ASSESSMENT section 7.2.
 | `video_brightness` / `video_contrast` | Works | applied in paintEvent |
 | `video_saturation` | **Works** (was Dead) | wired in paintEvent, covered by test |
 | **Crossfader video mixing** | **Works** (was broken) | deck-keyed, blend curve corrected, tested |
-| **Beat-locked video FX** | **Works** (MVP) | strobe + zoom pump via `VideoFxChain`; division 1/2/4/8/16/32; 8 tests |
+| **Beat-locked video FX** | **Works** (MVP) | strobe + zoom pump via `VideoFxChain`; division 1/2/4/8/16/32; 9 tests |
+| **Album-art Ken Burns fallback** | **Works** (step 4) | `VideoFallback` when no companion video; CO `video_fallback` (default on); 3 tests |
 | `[Master]` video output panel | Works | consumes the corrected blend |
 | Non-yuv420p / NV12 sources | **Works** (was broken) | scaler built from actual frame format |
 | Pause / resume | **Works** (was UB) | QWaitCondition now holds its mutex |
