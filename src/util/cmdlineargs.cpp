@@ -67,6 +67,8 @@ CmdlineArgs::CmdlineArgs()
           m_logLevel(mixxx::kLogLevelDefault),
           m_logFlushLevel(mixxx::kLogFlushLevelDefault),
           m_logMaxFileSize(mixxx::kLogMaxFileSizeDefault),
+          m_dumpControls(false),
+          m_noBanner(false),
 // We are not ready to switch to XDG folders under Linux, so keeping $HOME/.mixxx as preferences folder. see #8090
 #ifdef MIXXX_SETTINGS_PATH
           m_settingsPath(QDir::homePath().append("/").append(MIXXX_SETTINGS_PATH))
@@ -360,6 +362,38 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
             QStringLiteral("style"));
     parser.addOption(styleOption);
 
+    const QCommandLineOption setControl(
+            QStringLiteral("set-control"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Set a ControlObject after startup. Repeatable. "
+                                      "Format: \"[Group],item=value\"")
+                            : QString(),
+            QStringLiteral("assignment"));
+    parser.addOption(setControl);
+
+    const QCommandLineOption dumpControls(
+            QStringLiteral("dump-controls"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Print every registered ControlObject, then exit.")
+                            : QString());
+    parser.addOption(dumpControls);
+
+    const QCommandLineOption gigScript(
+            QStringLiteral("gig-script"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Apply a gig setup script after startup "
+                                      "(set/load/video/queue-crate/autodj commands).")
+                            : QString(),
+            QStringLiteral("path"));
+    parser.addOption(gigScript);
+
+    const QCommandLineOption noBanner(
+            QStringLiteral("no-banner"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Suppress the Mixxxxx startup banner.")
+                            : QString());
+    parser.addOption(noBanner);
+
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -502,6 +536,18 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
     if (parser.isSet(styleOption)) {
         m_styleName = parser.value(styleOption);
     }
+
+    if (parser.isSet(setControl)) {
+        m_setControls = parser.values(setControl);
+    }
+
+    m_dumpControls = parser.isSet(dumpControls);
+
+    if (parser.isSet(gigScript)) {
+        m_gigScriptPath = parser.value(gigScript);
+    }
+
+    m_noBanner = parser.isSet(noBanner);
 
     return true;
 }

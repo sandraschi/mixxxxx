@@ -35,6 +35,8 @@
 #include "skin/skincontrols.h"
 #include "soundio/soundmanager.h"
 #include "sources/soundsourceproxy.h"
+#include "util/controlcli.h"
+#include "util/cmdlineargs.h"
 #include "util/clipboard.h"
 #include "util/db/dbconnectionpooled.h"
 #include "util/font.h"
@@ -680,6 +682,19 @@ void CoreServices::initialize(QApplication* pApp) {
     for (int i = 0; i < numTracks; ++i) {
         if (SoundSourceProxy::isFileNameSupported(musicFiles.at(i))) {
             m_pPlayerManager->slotLoadToDeck(musicFiles.at(i), i + 1);
+        }
+    }
+
+    mixxx::ControlCli::applySetControlAssignments(m_cmdlineArgs.getSetControls());
+
+    if (!m_cmdlineArgs.getGigScriptPath().isEmpty()) {
+        QString gigScriptError;
+        if (!mixxx::ControlCli::executeGigScript(
+                    m_cmdlineArgs.getGigScriptPath(),
+                    m_pPlayerManager.get(),
+                    m_pTrackCollectionManager.get(),
+                    &gigScriptError)) {
+            qWarning() << "Gig script failed:" << gigScriptError;
         }
     }
 

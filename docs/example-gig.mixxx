@@ -1,0 +1,18 @@
+# Example Mixxxxx gig script
+# Launch:
+#   mixxx.exe --settings-path C:\gigs\friday-profile --gig-script docs\example-gig.mixxx
+
+# Show video output panel and enable video on both decks
+set [Skin],show_video_output=1
+set [Channel1],video_enabled=1
+set [Channel2],video_enabled=1
+set [Mixer],crossfader=0.0
+
+# Load openers (edit paths for your library)
+# load 1 "D:/Music/opener.flac"
+# load 2 "D:/Music/build.flac"
+# video 1 "D:/Video/opener.mp4"
+
+# Queue a crate into AutoDJ, then start when ready
+# queue-crate "Friday Techno"
+# autodj

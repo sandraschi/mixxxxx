@@ -142,15 +142,15 @@ Est: 1 day for a solid faders/EQ/pads mapping, 1 to 2 more for LED feedback.
 Full rationale in `docs/IDEAS.md`. With no OSC and no scripting surface, the CLI is
 currently the only automation entry point, and it is thin. Highest-value flags:
 
-- `--set-control "[Group],name=value"` (repeatable), applied after startup
-- `--dump-controls` then exit, listing every registered CO
+- `--set-control "[Group],name=value"` (repeatable), applied after startup **Implemented 2026-07-26**
+- `--dump-controls` then exit, listing every registered CO **Implemented 2026-07-26**
+- `--gig-script <path>` line-based gig setup (set/load/video/queue-crate/autodj) **Implemented 2026-07-26**
+- `--no-banner` suppress Mixxxxx startup banner **Implemented 2026-07-26**
 - `--export-crate <name> --export-format <engine|serato|virtualdj> --export-path <dir>` then exit
 - `--video-screen <n>` to pick the fullscreen output monitor
 - `--load-video <deck> <path>` to override companion resolution
 
-`--set-control` and `--dump-controls` alone would have made this entire audit
-trivial and replace most of what OSC is wanted for during testing.
-Est: 1 day for the set listed.
+Example gig script: `docs/example-gig.mixxx`
 
 ---
 

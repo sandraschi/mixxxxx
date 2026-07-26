@@ -75,6 +75,19 @@ class CmdlineArgs final {
         return m_styleName;
     }
 
+    const QStringList& getSetControls() const {
+        return m_setControls;
+    }
+    const QString& getGigScriptPath() const {
+        return m_gigScriptPath;
+    }
+    bool getDumpControls() const {
+        return m_dumpControls;
+    }
+    bool getNoBanner() const {
+        return m_noBanner;
+    }
+
     void setScaleFactor(double scaleFactor) {
         m_scaleFactor = scaleFactor;
     }
@@ -115,4 +128,8 @@ class CmdlineArgs final {
     QString m_resourcePath;
     QString m_timelinePath;
     QString m_styleName;
+    QStringList m_setControls;
+    QString m_gigScriptPath;
+    bool m_dumpControls;
+    bool m_noBanner;
 };

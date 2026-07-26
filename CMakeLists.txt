@@ -1186,6 +1186,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/util/cache.cpp
   src/util/clipboard.cpp
   src/util/cmdlineargs.cpp
+  src/util/controlcli.cpp
   src/util/color/color.cpp
   src/util/color/colorpalette.cpp
   src/util/color/predefinedcolorpalettes.cpp
@@ -1226,6 +1227,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/util/safelywritablefile.cpp
   src/util/sample.cpp
   src/util/sandbox.cpp
+  src/util/startupbanner.cpp
   src/util/screensaver.cpp
   src/util/screensavermanager.cpp
   src/util/semanticversion.cpp
@@ -1419,6 +1421,7 @@ target_precompile_headers(mixxx-lib PUBLIC
   src/util/circularbuffer.h
   src/util/class.h
   src/util/cmdlineargs.h
+  src/util/controlcli.h
   src/util/color/color.h
   src/util/color/colorpalette.h
   src/util/color/predefinedcolorpalettes.h
@@ -1501,6 +1504,7 @@ target_precompile_headers(mixxx-lib PUBLIC
   src/util/sandbox.h
   src/util/scopedoverridecursor.h
   src/util/screensaver.h
+  src/util/startupbanner.h
   src/util/screensavermanager.h
   src/util/semanticversion.h
   src/util/singleton.h
@@ -2150,6 +2154,7 @@ if(BUILD_TESTING)
     src/test/controllers/controller_columnid_regression_test.cpp
     src/test/controllerscriptenginelegacy_test.cpp
     src/test/controlobjecttest.cpp
+    src/test/controlcli_test.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
     src/test/controlpotmetertest.cpp

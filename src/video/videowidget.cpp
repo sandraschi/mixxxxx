@@ -4,14 +4,16 @@
 #include "control/controlpushbutton.h"
 #include "control/controlobject.h"
 #include "control/controlpotmeter.h"
+#include "util/controlcli.h"
 #include "moc_videowidget.cpp"
 
 #include <QPainter>
 #include <QFileInfo>
 #include <QDir>
-#include <QVBoxLayout>
 #include <QGuiApplication>
+#include <QRegularExpression>
 #include <QScreen>
+#include <QVBoxLayout>
 #include "track/track.h"
 
 VideoWidget::VideoWidget(const QString& group, QWidget* parent)
@@ -58,6 +60,20 @@ void VideoWidget::slotLoadTrack(TrackPointer pTrack) {
 }
 
 void VideoWidget::findCompanionVideo(const QString& audioPath) {
+    const QRegularExpression channelPattern(QStringLiteral(R"(\[Channel(\d+)\])"));
+    const QRegularExpressionMatch match = channelPattern.match(m_group);
+    if (match.hasMatch()) {
+        const int deck = match.captured(1).toInt();
+        const QString overridePath = mixxx::ControlCli::videoOverrideForDeck(deck);
+        if (!overridePath.isEmpty() && QFileInfo::exists(overridePath)) {
+            m_currentVideoPath = overridePath;
+            if (m_pVideoEnabled->get()) {
+                slotVideoEnabled(1.0);
+            }
+            return;
+        }
+    }
+
     QFileInfo fi(audioPath);
     QString basePath = fi.absolutePath() + "/" + fi.completeBaseName();
 

@@ -26,8 +26,10 @@
 #include "sources/soundsourceproxy.h"
 #include "util/cmdlineargs.h"
 #include "util/console.h"
+#include "util/controlcli.h"
 #include "util/logging.h"
 #include "util/sandbox.h"
+#include "util/startupbanner.h"
 #include "util/versionstore.h"
 
 namespace {
@@ -87,6 +89,12 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
                 pow(pApp->devicePixelRatio(), 2.0f)));
 
         pCoreServices->initialize(pApp);
+
+        if (args.getDumpControls()) {
+            const int count = mixxx::ControlCli::dumpControlsToStdout();
+            qInfo() << "Dumped" << count << "controls";
+            return 0;
+        }
 
 #ifdef MIXXX_USE_QOPENGL
         // Will call initialize when the initial wglwidget's
@@ -236,6 +244,10 @@ int main(int argc, char * argv[]) {
 #endif
 
     applyStyleOverride(&args);
+
+    if (!args.getNoBanner() && !args.getDumpControls()) {
+        mixxx::StartupBanner::print(args);
+    }
 
     qInfo() << "Selected Qt style:" << QApplication::style()->objectName();
 
