@@ -15,6 +15,9 @@
 #endif
 #include "control/controlindicatortimer.h"
 #include "control/oscserver.h"
+#ifdef __FFMPEG__
+#include "video/ndioutput.h"
+#endif
 #include "controllers/controllermanager.h"
 #include "controllers/keyboard/keyboardeventfilter.h"
 #include "database/mixxxdb.h"
@@ -703,6 +706,14 @@ void CoreServices::initialize(QApplication* pApp) {
             m_pPlayerManager.get(), pConfig, this);
     m_pOscServer->start();
 
+#ifdef __FFMPEG__
+    m_pNdiOutput = std::make_unique<NdiOutput>(pConfig, this);
+    if (m_cmdlineArgs.getNdiEnable()) {
+        mixxx::ControlCli::applySetControl(
+                QStringLiteral("[Ndi]"), QStringLiteral("enabled"), 1.0);
+    }
+#endif
+
     m_isInitialized = true;
 }
 
@@ -815,6 +826,10 @@ void CoreServices::finalize() {
         m_pOscServer->stop();
         m_pOscServer.reset();
     }
+
+#ifdef __FFMPEG__
+    m_pNdiOutput.reset();
+#endif
 
     // Stop all pending library operations
     qDebug() << t.elapsed(false).debugMillisWithUnit() << "stopping pending Library tasks";

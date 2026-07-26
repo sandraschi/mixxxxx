@@ -812,6 +812,7 @@ add_library(mixxx-lib STATIC EXCLUDE_FROM_ALL
   src/dialog/dlgdevelopertoolsdlg.ui
   src/dialog/dlgkeywheel.cpp
   src/dialog/dlgkeywheel.ui
+  src/dialog/dlgstartupbanner.cpp
   src/dialog/dlgreplacecuecolor.cpp
   src/dialog/dlgreplacecuecolordlg.ui
   src/effects/backends/builtin/autopaneffect.cpp
@@ -2256,6 +2257,8 @@ if(BUILD_TESTING)
       src/test/videofxchain_test.cpp
       src/test/videofallback_test.cpp
       src/test/videopool_test.cpp
+      src/test/videogenerative_test.cpp
+      src/test/ndi_frame_util_test.cpp
     )
   endif()
   if(BUILD_BENCH)
@@ -3666,6 +3669,9 @@ if(FFMPEG)
     src/video/videofxchain.cpp
     src/video/videofallback.cpp
     src/video/videopool.cpp
+    src/video/videogenerative.cpp
+    src/video/ndi_frame_util.cpp
+    src/video/ndioutput.cpp
     src/video/videothumbnail.cpp
   )
   target_compile_definitions(mixxx-lib PUBLIC
@@ -3677,6 +3683,42 @@ if(FFMPEG)
   )
   target_link_libraries(mixxx-lib PRIVATE "${FFMPEG_LIBRARIES}")
   target_include_directories(mixxx-lib PUBLIC "${FFMPEG_INCLUDE_DIRS}")
+endif()
+
+# NDI network video output (optional; requires NDI SDK download)
+option(NDI "NDI network video output" OFF)
+set(NDI_SDK_DIR "" CACHE PATH "Root directory of the NDI SDK (Include + Lib/x64)")
+
+if(NDI AND FFMPEG)
+  if(NDI_SDK_DIR STREQUAL "" AND DEFINED ENV{NDI_SDK_DIR})
+    set(NDI_SDK_DIR "$ENV{NDI_SDK_DIR}")
+  endif()
+  if(NDI_SDK_DIR STREQUAL "" AND EXISTS "C:/Program Files/NDI/NDI 6 SDK")
+    set(NDI_SDK_DIR "C:/Program Files/NDI/NDI 6 SDK")
+  endif()
+  if(NDI_SDK_DIR STREQUAL "" AND EXISTS "C:/Program Files/NDI/NDI 5 SDK")
+    set(NDI_SDK_DIR "C:/Program Files/NDI/NDI 5 SDK")
+  endif()
+
+  find_path(NDI_INCLUDE_DIR Processing.NDI.Lib.h
+          PATHS "${NDI_SDK_DIR}/Include" "${NDI_SDK_DIR}/include")
+  find_library(NDI_LIBRARY NAMES Processing.NDI.Lib.x64 Processing.NDI.Lib
+          PATHS "${NDI_SDK_DIR}/Lib/x64" "${NDI_SDK_DIR}/lib/x64")
+
+  if(NDI_INCLUDE_DIR AND NDI_LIBRARY)
+    message(STATUS "NDI SDK found: ${NDI_INCLUDE_DIR}")
+    target_compile_definitions(mixxx-lib PUBLIC __MIXXXXX_NDI__)
+    target_include_directories(mixxx-lib PRIVATE "${NDI_INCLUDE_DIR}")
+    target_link_libraries(mixxx-lib PRIVATE "${NDI_LIBRARY}")
+
+    find_file(NDI_RUNTIME_DLL Processing.NDI.Lib.x64.dll
+            PATHS "${NDI_SDK_DIR}/Bin/x64" "${NDI_SDK_DIR}/bin/x64")
+    if(NDI_RUNTIME_DLL)
+      install(FILES "${NDI_RUNTIME_DLL}" DESTINATION ${MIXXX_INSTALL_BINDIR})
+    endif()
+  else()
+    message(WARNING "NDI=ON but SDK not found. Set NDI_SDK_DIR. Building NdiOutput stub.")
+  endif()
 endif()
 
 # ONNX Runtime for AI stem separation (Windows only)

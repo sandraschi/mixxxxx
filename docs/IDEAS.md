@@ -186,7 +186,7 @@ half of it.
    there. **MVP done** (TODO 25 partial).
 3. CLI `--export-crate`, which closes the exporter story. **Done.**
 4. OSC control bridge (mixx-dj-mcp). **MVP done** (TODO 18).
-5. Video fallback chain. **In progress** (pool loops + Ken Burns; generative next).
-6. NDI output (OBS/Kick stream path).
+5. Video fallback chain. **Done** (pool → generative → Ken Burns; steps 2–4).
+6. NDI output (OBS/Kick stream path). **Partial MVP** — SDK + receiver verify pending.
 7. VJ integration: OSC-out + Spout master (TODO 28) — after NDI unless local VJ rig
    is urgent. Spec: `docs/vj-integration-spout-osc.md`.

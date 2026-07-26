@@ -22,6 +22,7 @@
 #include "library/coverart.h"
 #include "track/track.h"
 #include "video/videofallback.h"
+#include "video/videogenerative.h"
 #include "video/videopool.h"
 
 VideoWidget::VideoWidget(const QString& group, QWidget* parent)
@@ -62,6 +63,8 @@ VideoWidget::VideoWidget(const QString& group, QWidget* parent)
 
     m_pVideoFallback = std::make_unique<ControlPushButton>(
         ConfigKey(group, "video_fallback"), true, 1.0);
+    m_pVideoFallbackGenerative = std::make_unique<ControlPushButton>(
+        ConfigKey(group, "video_fallback_generative"), true, 1.0);
 
     CoverArtCache* pCoverCache = CoverArtCache::instance();
     if (pCoverCache) {
@@ -164,6 +167,7 @@ int VideoWidget::deckIndex() const {
 
 void VideoWidget::stopFallbackVisuals() {
     stopPoolLoopFallback();
+    stopGenerativeFallback();
     stopKenBurnsFallback();
 }
 
@@ -172,10 +176,21 @@ void VideoWidget::stopKenBurnsFallback() {
         return;
     }
     const int deck = deckIndex();
-    if (deck > 0 && !m_usingPoolLoop) {
+    if (deck > 0 && !m_usingPoolLoop && !m_usingGenerativeFallback) {
         VideoMixer::instance().unregisterDecoder(deck);
     }
     m_usingKenBurnsFallback = false;
+}
+
+void VideoWidget::stopGenerativeFallback() {
+    if (!m_usingGenerativeFallback) {
+        return;
+    }
+    const int deck = deckIndex();
+    if (deck > 0 && !m_usingPoolLoop && !m_usingKenBurnsFallback) {
+        VideoMixer::instance().unregisterDecoder(deck);
+    }
+    m_usingGenerativeFallback = false;
 }
 
 void VideoWidget::stopPoolLoopFallback() {
@@ -200,8 +215,52 @@ bool VideoWidget::tryStartFallbackChain() {
     if (tryStartPoolLoop()) {
         return true;
     }
+    if (tryStartGenerativeFallback()) {
+        return true;
+    }
     tryStartKenBurnsFallback();
-    return m_usingKenBurnsFallback;
+    return m_usingKenBurnsFallback || m_usingGenerativeFallback;
+}
+
+bool VideoWidget::tryStartGenerativeFallback() {
+    if (!m_pVideoFallbackGenerative || m_pVideoFallbackGenerative->get() <= 0.0) {
+        return false;
+    }
+    if (!m_pTrack || !m_currentVideoPath.isEmpty() || m_usingPoolLoop) {
+        return false;
+    }
+
+    stopKenBurnsFallback();
+    const int deck = deckIndex();
+    if (deck > 0) {
+        VideoMixer::instance().registerDecoder(deck, nullptr);
+    }
+    m_usingGenerativeFallback = true;
+    m_hasVideo = true;
+    updateGenerativeFallbackFrame();
+    return true;
+}
+
+void VideoWidget::updateGenerativeFallbackFrame() {
+    if (!m_usingGenerativeFallback) {
+        return;
+    }
+
+    VideoGenerative::Params params;
+    params.beatDistance = ControlObject::get(ConfigKey(m_group, "beat_distance"));
+    params.bpm = ControlObject::get(ConfigKey(m_group, "bpm"));
+    params.beatIndex = VideoFxChain::beatIndexFromGroup(m_group);
+    const double volume = ControlObject::get(ConfigKey(m_group, "volume"));
+    params.energy = qBound(0.25, volume > 0.0 ? volume : 0.5, 1.0);
+
+    const double clock = ControlObject::get(ConfigKey(m_group, "video_audio_clock"));
+    QImage frame = VideoGenerative::render(params);
+    const int deck = deckIndex();
+    if (deck > 0) {
+        VideoMixer::instance().pushFrame(deck, frame, clock);
+    }
+    QMutexLocker lock(&m_frameMutex);
+    m_currentFrame = frame;
 }
 
 bool VideoWidget::tryStartPoolLoop() {
@@ -217,6 +276,7 @@ bool VideoWidget::tryStartPoolLoop() {
     }
 
     stopKenBurnsFallback();
+    stopGenerativeFallback();
     ensureDecoder();
     m_decoder->setGroup(m_group);
     m_decoder->setSyncMode(VideoSyncMode::PoolLoop);
@@ -240,7 +300,8 @@ void VideoWidget::tryStartKenBurnsFallback() {
     if (!m_pVideoFallback || m_pVideoFallback->get() <= 0.0) {
         return;
     }
-    if (!m_currentVideoPath.isEmpty() || !m_pTrack || m_usingPoolLoop) {
+    if (!m_currentVideoPath.isEmpty() || !m_pTrack || m_usingPoolLoop ||
+            m_usingGenerativeFallback) {
         return;
     }
     if (m_fallbackCover.isNull()) {
@@ -339,6 +400,9 @@ void VideoWidget::slotFrameDecoded(const QImage& frame, double pts) {
 }
 
 void VideoWidget::slotTick() {
+    if (m_usingGenerativeFallback) {
+        updateGenerativeFallbackFrame();
+    }
     if (m_usingKenBurnsFallback) {
         updateKenBurnsFallbackFrame();
     }
@@ -372,7 +436,7 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
             p.setPen(Qt::white);
             p.drawText(rect(), Qt::AlignCenter, tr("Video Paused"));
         } else if (m_pVideoFallback && m_pVideoFallback->get() > 0.0 && m_pTrack &&
-                !m_usingPoolLoop) {
+                !m_usingPoolLoop && !m_usingGenerativeFallback) {
             p.setPen(Qt::gray);
             p.drawText(rect(), Qt::AlignCenter, tr("Loading fallback..."));
         } else if (!m_group.isEmpty()) {

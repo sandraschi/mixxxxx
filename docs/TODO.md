@@ -154,7 +154,7 @@ Full rationale in `docs/IDEAS.md`. CLI and OSC MVP are in place; remaining flags
 - `--set-control "[Group],name=value"` (repeatable), applied after startup **Implemented 2026-07-26**
 - `--dump-controls` then exit, listing every registered CO **Implemented 2026-07-26**
 - `--gig-script <path>` line-based gig setup (set/load/video/queue-crate/autodj) **Implemented 2026-07-26**
-- `--no-banner` suppress Mixxxxx startup banner **Implemented 2026-07-26**
+- `--no-banner` suppress stderr + GUI startup banner **Implemented 2026-07-26**; GUI welcome dialog with “Show this welcome on startup” checkbox (`[Config],startup_banner_show`) **2026-07-27**
 - `--export-crate <name> --export-format <engine|serato|virtualdj> --export-path <dir>` then exit **Implemented 2026-07-26**
 - `--import-crate <path> [--into-crate <name>]` (M3U/PLS/CSV, `.vdjfolder`, Serato `.crate`) **Implemented 2026-07-26**
 - `--video-screen <n>` to pick the fullscreen output monitor
@@ -189,13 +189,21 @@ CO `[ChannelN],video_fallback` (default 1). `videofallback_test.cpp` (3 cases).
 or sidecar `.json`. Selection by BPM/genre/energy; playback via `VideoDecoder`
 pool sync mode (`deckBpm/loopBpm * rate_ratio`). `videopool_test.cpp` (5 cases).
 
-Remaining chain steps: generative visuals (3), polish (5).
-Est: 2 to 3 days for step 3 + energy from analyzer.
+**Partial 2026-07-27 (step 3):** `VideoGenerative` — beat-reactive pulses/bars
+(`beat_distance`, `bpm`, deck volume); chain step between pool and Ken Burns;
+CO `[ChannelN],video_fallback_generative` (default 1). Native QImage MVP — Butter
+Churn remains in mixx-dj-mcp webapp. `videogenerative_test.cpp` (4 cases).
+
+Fallback chain **complete** (steps 2–4). NDI MVP landed (27, partial — SDK verify pending).
 
 ### 27. NDI output
 Turns the project from a closed box into a video source for real rigs.
-**Not implemented** — primer: [`docs/NDI.md`](docs/NDI.md). Help tab in mixx-dj-mcp webapp.
-Est: 2 to 3 days (CMake `NDI=ON`, SDK download, sender from `VideoMixer::blendFrame()`).
+
+**Partial 2026-07-27:** `NdiOutput` publishes `VideoMixer::blendFrame()` at ~30 fps.
+COs `[Ndi],enabled`, `[Ndi],source_name`; CLI `--ndi-enable`. CMake `NDI=ON` +
+`NDI_SDK_DIR` links NDI SDK; without SDK the stub logs and sends nothing.
+`NdiFrameUtil` letterbox + 3 unit tests. **Not Works** until OBS / NDI Studio Monitor
+confirms the feed. Primer: [`docs/NDI.md`](docs/NDI.md).
 
 ### 28. VJ integration: OSC-out + Spout (Windows)
 Local interoperability with Magic, TouchDesigner, Synesthesia, etc. without buying Resolume.

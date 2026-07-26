@@ -24,6 +24,7 @@ mixxx-test.exe --gtest_filter=VideoMixerTest.*     7 tests, all passing
 mixxx-test.exe --gtest_filter=VideoFxChainTest.*   9 tests, all passing
 mixxx-test.exe --gtest_filter=VideoFallbackTest.*  3 tests, all passing
 mixxx-test.exe --gtest_filter=VideoPoolTest.*      5 tests, all passing
+mixxx-test.exe --gtest_filter=VideoGenerativeTest.*  4 tests, all passing
 mixxx-test.exe --gtest_filter=OscServerTest.*      2 tests, all passing
 ```
 
@@ -49,11 +50,12 @@ was caused by this fork and is now fixed. See ASSESSMENT section 7.2.
 | **Beat-locked video FX** | **Works** (MVP) | strobe + zoom pump via `VideoFxChain`; division 1/2/4/8/16/32; 9 tests |
 | **Album-art Ken Burns fallback** | **Works** (step 4) | `VideoFallback` when no companion video; CO `video_fallback` (default on); 3 tests |
 | **Beat-matched pool loops** | **Works** (step 2 MVP) | `VideoPool` scans settings `video-pool/` or `--video-pool`; BPM-scaled sync in `VideoDecoder`; 5 tests |
+| **Generative beat visuals** | **Works** (step 3 MVP) | `VideoGenerative` CPU pulses/bars; CO `video_fallback_generative`; 4 tests |
 | `[Master]` video output panel | Works | consumes the corrected blend |
 | Non-yuv420p / NV12 sources | **Works** (was broken) | scaler built from actual frame format |
 | Pause / resume | **Works** (was UB) | QWaitCondition now holds its mutex |
 | Independent video crossfader | **Absent** | CO was dead and removed; TODO 23 |
-| **NDI network output** | **Absent** (documented) | primer [`docs/NDI.md`](NDI.md); implementation TODO 27 |
+| **NDI network output** | **Partial MVP** | `NdiOutput` stub without SDK; live send needs `-DNDI=ON` + SDK; not verified on receiver yet |
 | Hardware decode (D3D11VA / CUDA) | **Dead** | no `get_format` callback, silently software |
 | Video thumbnails in library | Absent | `VideoThumbnail` exists, not wired to CoverArt DAO |
 | Stem separation | Absent from binary | `ONNX_RUNTIME=OFF` in this build |
@@ -125,7 +127,7 @@ relink fine regardless, so tests can be run without closing the app.
 |---|---|---|
 | `docs/STATUS.md` | Current | this file — source of truth for Works/Absent |
 | `docs/TODO.md` | Current | ordered backlog |
-| `docs/NDI.md` | Current | planned feature primer (not implemented) |
+| `docs/NDI.md` | Current | NDI MVP (stub + SDK path); not verified on receiver |
 | `docs/vj-integration-spout-osc.md` | Current | Spout + VJ OSC spec (TODO 28, after NDI) |
 | `docs/SKINS.md` | Current | community install; MixxxxxVideo + Daylight |
 | `docs/IDEAS.md` | Current | beat FX → fallback → NDI → VJ order |

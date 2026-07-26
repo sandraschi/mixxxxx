@@ -1,6 +1,9 @@
-# NDI output (planned)
+# NDI output
 
-**Status:** Not implemented. See `docs/TODO.md` item 27 and `docs/IDEAS.md` §3.
+**Status:** **Partial MVP** (2026-07-27) — code in tree; builds without NDI SDK as a stub.
+**Not marked Works** until OBS or NDI Studio Monitor shows the feed with `-DNDI=ON`.
+
+See `docs/TODO.md` item 27 and `docs/IDEAS.md` §3.
 
 NDI is how mixxxxx would send **live video over the network** to OBS, Resolume, vMix, and
 club media servers — without a second monitor cable or HDMI capture card.
@@ -37,25 +40,31 @@ the same network (or NDI Bridge over WAN with extra setup).
 |---|---|
 | Per-deck video decode + crossfader blend | Works (`VideoMixer`) |
 | Fullscreen window on monitor 2 | Works (`VideoWidget`, CO) |
-| **NDI sender** | **Absent** — no SDK, no sender in `src/` |
+| **NDI sender** | **Partial MVP** | `NdiOutput` + `NdiFrameUtil`; CO `[Ndi],enabled`, `[Ndi],source_name`; `--ndi-enable`; CMake `NDI=ON` + SDK for live send |
 
 Today the video path is a **local window**. NDI would publish the same blended frame that
 `VideoMixer::blendFrame()` already produces (QImage / RGB), on a timer aligned to video FPS.
 
 ---
 
-## Planned design (when built)
+## Implemented (2026-07-27)
 
-1. **CMake option** `NDI=ON` (default **OFF**) — like `FFMPEG`, `ONNX_RUNTIME`.
-2. **NDI Advanced SDK** (free download from ndi.video; license acceptance required).
-3. **`NdiOutput` class** — create sender, convert QImage → NDI frame, send each blended frame.
-4. **ControlObjects** (names TBD), e.g.:
-   - `[Ndi],enabled`
-   - `[Ndi],source_name` (string CO or config key)
-5. **CLI flags** (future): `--ndi-enable`, `--ndi-name Mixxxxx`
-6. **Unit test** — frame dimensions / pixel layout conversion only (no network in CI).
+1. **CMake option** `NDI=ON` (default **OFF**) — requires `FFMPEG=ON`.
+2. **`NDI_SDK_DIR`** or auto-detect under `C:/Program Files/NDI/NDI {5,6} SDK`.
+3. **`NdiOutput`** (`src/video/ndioutput.{h,cpp}`) — 30 fps timer, reads `VideoMixer::blendFrame()`.
+4. **`NdiFrameUtil`** — letterbox to 16:9 ARGB32/BGRA for NDI (`ndi_frame_util_test.cpp`, 3 cases).
+5. **ControlObjects:**
+   - `[Ndi],enabled` (push button, default off)
+   - `[Ndi],source_name` (UserSettings string, default `"Mixxxxx"`)
+6. **CLI:** `--ndi-enable` sets `[Ndi],enabled` at startup.
+7. **Stub path:** without SDK, enabling logs a warning; no network traffic.
 
-We will **not** mark NDI "Works" until a receiver (OBS or NDI Studio Monitor) shows the feed.
+**To verify:** install NDI SDK, rebuild with `-DNDI=ON -DNDI_SDK_DIR=...`, enable CO,
+open NDI Studio Monitor or OBS NDI Source.
+
+---
+
+## Original plan (reference)
 
 ---
 
@@ -100,4 +109,4 @@ about **club/stream plumbing** or **daily mixing with video**.
 
 - [NDI SDK download](https://ndi.video/for-developers/ndi-sdk/)
 - [OBS NDI plugin](https://github.com/obs-ndi/obs-ndi)
-- mixxxxx source (future): `src/video/ndioutput.{h,cpp}` (not created yet)
+- mixxxxx source: `src/video/ndioutput.{h,cpp}`, `src/video/ndi_frame_util.{h,cpp}`

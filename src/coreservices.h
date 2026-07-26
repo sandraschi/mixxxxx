@@ -27,6 +27,7 @@ namespace mixxx {
 
 class ControlIndicatorTimer;
 class DbConnectionPool;
+class NdiOutput;
 class OscServer;
 class ScreensaverManager;
 
@@ -147,6 +148,9 @@ class CoreServices : public QObject {
     std::unique_ptr<SkinControls> m_pSkinControls;
     std::unique_ptr<ControlPushButton> m_pTouchShift;
     std::unique_ptr<mixxx::OscServer> m_pOscServer;
+#ifdef __FFMPEG__
+    std::unique_ptr<NdiOutput> m_pNdiOutput;
+#endif
 
     Timer m_runtime_timer;
     const CmdlineArgs& m_cmdlineArgs;

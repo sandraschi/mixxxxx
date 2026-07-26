@@ -47,10 +47,13 @@ class VideoWidget : public QWidget {
     int deckIndex() const;
     void stopFallbackVisuals();
     void stopKenBurnsFallback();
+    void stopGenerativeFallback();
     void stopPoolLoopFallback();
     bool tryStartFallbackChain();
     bool tryStartPoolLoop();
+    bool tryStartGenerativeFallback();
     void tryStartKenBurnsFallback();
+    void updateGenerativeFallbackFrame();
     void updateKenBurnsFallbackFrame();
     void ensureDecoder();
 
@@ -69,9 +72,11 @@ class VideoWidget : public QWidget {
     std::unique_ptr<ControlPotmeter> m_pBeatFxStrobeAmount;
     std::unique_ptr<ControlPotmeter> m_pBeatFxZoomAmount;
     std::unique_ptr<ControlPushButton> m_pVideoFallback;
+    std::unique_ptr<ControlPushButton> m_pVideoFallbackGenerative;
 
     QImage m_fallbackCover;
     bool m_usingKenBurnsFallback = false;
+    bool m_usingGenerativeFallback = false;
     bool m_usingPoolLoop = false;
     QString m_poolLoopPath;
     double m_poolLoopBpm = 0.0;

@@ -447,6 +447,13 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
             QStringLiteral("dir"));
     parser.addOption(videoPool);
 
+    const QCommandLineOption ndiEnable(
+            QStringLiteral("ndi-enable"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Enable NDI network video output at startup.")
+                            : QString());
+    parser.addOption(ndiEnable);
+
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -618,6 +625,8 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
     if (parser.isSet(videoPool)) {
         m_videoPoolPath = parser.value(videoPool);
     }
+
+    m_ndiEnable = parser.isSet(ndiEnable);
 
     return true;
 }

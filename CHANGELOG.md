@@ -11,11 +11,14 @@ Mixxx 2.5.6. Upstream Mixxx changelog follows.
 - **VideoFxChain** — beat-locked strobe + zoom pump (division CO, seek-stable beat index)
 - **VideoFallback** — album-art Ken Burns when no companion video (`video_fallback` CO)
 - **VideoPool** — beat-matched loop pool fallback (`--video-pool`, BPM-scaled decode sync)
+- **VideoGenerative** — beat-reactive procedural fallback (step 3 MVP)
+- **NdiOutput** — network video MVP (`[Ndi],enabled`, `--ndi-enable`; SDK via `-DNDI=ON`)
 
-#### Planned (docs only)
-- **VJ integration** — OSC-out + Spout master (TODO 28, after NDI); spec `docs/vj-integration-spout-osc.md`
+#### UI
+- **Startup welcome dialog** — feature overview with SVG banner, OK dismiss, “Show this welcome on startup” checkbox (`[Config],startup_banner_show`)
 
 #### CLI
+- `--ndi-enable` — enable NDI sender at startup
 - `--video-pool <dir>` — directory of tagged visual loops for deck fallback
 
 ### 2026-07-26

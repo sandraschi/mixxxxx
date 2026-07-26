@@ -20,6 +20,7 @@
 #include "qml/qmlapplication.h"
 #endif
 #include "mixxxmainwindow.h"
+#include "dialog/dlgstartupbanner.h"
 #if defined(__WINDOWS__)
 #include "nativeeventhandlerwin.h"
 #endif
@@ -164,6 +165,11 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
         } else {
             qDebug() << "Displaying main window";
             mainWindow.show();
+
+            mixxx::DlgStartupBanner::maybeShow(
+                    &mainWindow,
+                    pCoreServices->getSettings(),
+                    args);
 
             qDebug() << "Running Mixxx";
             exitCode = pApp->exec();

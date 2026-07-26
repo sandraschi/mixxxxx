@@ -115,6 +115,10 @@ class CmdlineArgs final {
         return m_videoPoolPath;
     }
 
+    bool getNdiEnable() const {
+        return m_ndiEnable;
+    }
+
     void setScaleFactor(double scaleFactor) {
         m_scaleFactor = scaleFactor;
     }
@@ -167,4 +171,5 @@ class CmdlineArgs final {
     QString m_importCratePath;
     QString m_importIntoCrateName;
     QString m_videoPoolPath;
+    bool m_ndiEnable = false;
 };
