@@ -123,6 +123,16 @@ Priority order (first match wins): `.mp4` > `.mkv` > `.mov` > `.webm`.
 Default OSC bindings from mixx-dj-mcp provide `video_enable` and `video_fullscreen`
 commands. Custom MIDI/OSC mappings can be created in Mixxx Preferences → MIDI/OSC.
 
+## Documentation
+
+| Topic | File |
+|---|---|
+| What works (source of truth) | [`docs/STATUS.md`](docs/STATUS.md) |
+| Skins (no marketplace — install guide) | [`docs/SKINS.md`](docs/SKINS.md) |
+| **NDI** (planned network video) | [`docs/NDI.md`](docs/NDI.md) |
+| Video feature roadmap | [`docs/IDEAS.md`](docs/IDEAS.md) |
+| Rane hardware handoff | [`docs/HANDOFF-RANE-MAPPING.md`](docs/HANDOFF-RANE-MAPPING.md) |
+
 ## Credits
 
 Mixxxxx is a fork of [Mixxx](https://mixxx.org/) — GPLv2 licensed.

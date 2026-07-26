@@ -135,13 +135,14 @@ Do DVS first (half a day, no mapping needed, `VINYLCONTROL=ON` already), MIDI
 mapping second. FX section is blocked by firmware and should be documented as a gap
 rather than solved. Touchscreen is out of scope.
 
-Note: `--dump-controls` (item 24) would make this job noticeably easier, which is
-another argument for doing the CLI work first.
+Note: `--dump-controls` (item 24) makes MIDI mapping jobs easier; implemented 2026-07-26.
 Est: 1 day for a solid faders/EQ/pads mapping, 1 to 2 more for LED feedback.
 
+### 32. Shelf Hercules DJ Console (Mk1/Mk2, ~2003)
+Maps already in `res/controllers/` — plug in and smoke-test when motivated; no new mapping work unless hardware fails to match a preset.
+
 ### 24. Extend the command line
-Full rationale in `docs/IDEAS.md`. With no OSC and no scripting surface, the CLI is
-currently the only automation entry point, and it is thin. Highest-value flags:
+Full rationale in `docs/IDEAS.md`. CLI and OSC MVP are in place; remaining flags below. Highest-value flags:
 
 - `--set-control "[Group],name=value"` (repeatable), applied after startup **Implemented 2026-07-26**
 - `--dump-controls` then exit, listing every registered CO **Implemented 2026-07-26**
@@ -153,6 +154,8 @@ currently the only automation entry point, and it is thin. Highest-value flags:
 - `--load-video <deck> <path>` to override companion resolution
 
 Example gig script: `docs/example-gig.mixxx`
+
+Community skins: `docs/SKINS.md` (no VDJ-style marketplace — forum/GitHub manual install).
 
 ---
 
@@ -170,7 +173,8 @@ Est: 4 to 5 days including BPM-matched loop playback.
 
 ### 27. NDI output
 Turns the project from a closed box into a video source for real rigs.
-Est: 2 to 3 days.
+**Not implemented** — primer: [`docs/NDI.md`](docs/NDI.md). Help tab in mixx-dj-mcp webapp.
+Est: 2 to 3 days (CMake `NDI=ON`, SDK download, sender from `VideoMixer::blendFrame()`).
 
 ### 28. Video hot cues
 Nearly free now that sync works.
@@ -198,8 +202,7 @@ or after a traced call-site verification recorded in STATUS.md.
 Est: 2 hours.
 
 ### 22. Add a `--developer` smoke checklist to docs
-Until item 24 lands, the Developer Tools CO browser is the only way to exercise
-video and export controls. Write it down.
+Developer Tools CO browser plus `--dump-controls` / `--set-control` cover video and export; write a short checklist anyway.
 Est: 30 min.
 
 ### 23. Independent video crossfader

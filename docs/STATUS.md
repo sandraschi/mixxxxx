@@ -49,10 +49,11 @@ was caused by this fork and is now fixed. See ASSESSMENT section 7.2.
 | Video thumbnails in library | Absent | `VideoThumbnail` exists, not wired to CoverArt DAO |
 | Stem separation | Absent from binary | `ONNX_RUNTIME=OFF` in this build |
 
-Video output panel is hidden on a fresh profile: `[Skin],show_video_output` is
-`persist="true"` and defaults to 0 (`skin.xml:44`).
+Video output panel is hidden on a fresh **LateNight** profile (`show_video_output=0`).
+**Mixxxxx Video** skin defaults both preview and output to on.
 
 Video requires a legacy skin. `parseVideoWidget` returns nullptr under QML.
+Mixxxxx Video skin: **Works** — `res/skins/MixxxxxVideo/` + Daylight scheme (`docs/SKINS.md`).
 
 ## Phase indicator
 
@@ -84,6 +85,7 @@ Video requires a legacy skin. `parseVideoWidget` returns nullptr under QML.
 |---|---|---|
 | ControlObjects for all features | Works | inspectable via Developer Tools |
 | MIDI / HID mapping | Works | upstream, untouched |
+| Hercules DJ Console Mk1/Mk2 (~2003) | Works (upstream maps) | `Hercules DJ Console Mk1.hid.xml`, Mk2 MIDI/HID; shelf plug-in test pending (TODO 32) |
 | **OSC server** | **Works** (MVP) | UDP 11119 in, 11118 out; `/mixxxxx/ping` heartbeat |
 | mixx-dj-mcp OSC bridge | **Works when Mixxx running** | probes `/mixxxxx/ping`, expects `/mixxxxx/pong` |
 

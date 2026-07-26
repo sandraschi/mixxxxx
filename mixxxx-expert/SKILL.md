@@ -50,6 +50,8 @@ You have access to **mixxxxx** — a video-enabled fork of Mixxx 2.5.6 with AI i
 | `mixx_daw` | 8 | DAW export + Resolume sync |
 | `mixx_transition` | 3 | AI transitions |
 
+**Fleet curio:** Hercules DJ Console Mk1/Mk2 (~2003) maps ship in `res/controllers/`; shelf unit needs plug-in smoke test only (TODO 32).
+
 ## OSC Control
 
 mixx-dj-mcp talks to mixxxxx via OSC on ports 11118/11119. The webapp runs on port 11117.
