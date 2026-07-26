@@ -1,5 +1,6 @@
 #include "video/videodecoder.h"
 #include "video/videomixer.h"
+#include "video/videopool.h"
 #include "control/controlobject.h"
 #include "moc_videodecoder.cpp"
 
@@ -151,6 +152,14 @@ void VideoDecoder::setSpeed(double speed) {
     m_speed = qMax(0.25, qMin(4.0, speed));
 }
 
+void VideoDecoder::setSyncMode(VideoSyncMode mode) {
+    m_syncMode = mode;
+}
+
+void VideoDecoder::setPoolLoopBpm(double bpm) {
+    m_poolLoopBpm = bpm;
+}
+
 
 void VideoDecoder::run() {
     while (!m_abort.loadRelaxed()) {
@@ -227,10 +236,36 @@ bool VideoDecoder::decodePacket() {
             double drift = m_audioClock - pts;
             double frameDuration = 1.0 / m_frameRate;
 
+            if (m_syncMode == VideoSyncMode::PoolLoop && m_poolLoopBpm > 0.0 &&
+                    m_duration > 0.0) {
+                const double rateRatio = ControlObject::get(
+                        ConfigKey(m_group, QStringLiteral("rate_ratio")));
+                const double deckBpm = ControlObject::get(
+                        ConfigKey(m_group, QStringLiteral("bpm")));
+                const double targetPts = VideoPool::poolLoopTargetSeconds(
+                        m_audioClock,
+                        rateRatio,
+                        deckBpm,
+                        m_poolLoopBpm,
+                        m_duration);
+                drift = targetPts - pts;
+            }
+
             if (drift > 2.0) {
                 // Way behind audio — seek forward to catch up
-                av_seek_frame(m_formatCtx, m_videoStreamIndex,
-                        static_cast<int64_t>(m_audioClock /
+                const double seekSeconds = m_syncMode == VideoSyncMode::PoolLoop
+                        ? VideoPool::poolLoopTargetSeconds(
+                                  m_audioClock,
+                                  ControlObject::get(ConfigKey(m_group,
+                                          QStringLiteral("rate_ratio"))),
+                                  ControlObject::get(
+                                          ConfigKey(m_group, QStringLiteral("bpm"))),
+                                  m_poolLoopBpm,
+                                  m_duration)
+                        : m_audioClock;
+                av_seek_frame(m_formatCtx,
+                        m_videoStreamIndex,
+                        static_cast<int64_t>(seekSeconds /
                                 av_q2d(m_formatCtx->streams[m_videoStreamIndex]->time_base)),
                         AVSEEK_FLAG_BACKWARD);
                 avcodec_flush_buffers(m_codecCtx);

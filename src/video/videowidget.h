@@ -45,9 +45,14 @@ class VideoWidget : public QWidget {
   private:
     void findCompanionVideo(const QString& audioPath);
     int deckIndex() const;
-    void stopFallback();
-    void tryStartFallback();
-    void updateFallbackFrame();
+    void stopFallbackVisuals();
+    void stopKenBurnsFallback();
+    void stopPoolLoopFallback();
+    bool tryStartFallbackChain();
+    bool tryStartPoolLoop();
+    void tryStartKenBurnsFallback();
+    void updateKenBurnsFallbackFrame();
+    void ensureDecoder();
 
     QString m_group;
     TrackPointer m_pTrack;
@@ -66,7 +71,10 @@ class VideoWidget : public QWidget {
     std::unique_ptr<ControlPushButton> m_pVideoFallback;
 
     QImage m_fallbackCover;
-    bool m_usingFallback = false;
+    bool m_usingKenBurnsFallback = false;
+    bool m_usingPoolLoop = false;
+    QString m_poolLoopPath;
+    double m_poolLoopBpm = 0.0;
     QImage m_currentFrame;
     QMutex m_frameMutex;
     bool m_hasVideo = false;

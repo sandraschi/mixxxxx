@@ -22,6 +22,7 @@
 #include "library/coverart.h"
 #include "track/track.h"
 #include "video/videofallback.h"
+#include "video/videopool.h"
 
 VideoWidget::VideoWidget(const QString& group, QWidget* parent)
     : QWidget(parent),
@@ -77,7 +78,7 @@ VideoWidget::VideoWidget(const QString& group, QWidget* parent)
 
 VideoWidget::~VideoWidget() {
     m_repaintTimer->stop();
-    stopFallback();
+    stopFallbackVisuals();
     if (m_decoder) {
         m_decoder->close();
         m_decoder->deleteLater();
@@ -88,15 +89,19 @@ VideoWidget::~VideoWidget() {
 void VideoWidget::slotLoadTrack(TrackPointer pTrack) {
     m_pTrack = pTrack;
     if (pTrack) {
-        stopFallback();
+        stopFallbackVisuals();
         m_fallbackCover = QImage();
+        m_poolLoopPath.clear();
+        m_poolLoopBpm = 0.0;
         findCompanionVideo(pTrack->getLocation());
         if (m_currentVideoPath.isEmpty()) {
-            tryStartFallback();
+            tryStartFallbackChain();
         }
     } else {
-        stopFallback();
+        stopFallbackVisuals();
         m_fallbackCover = QImage();
+        m_poolLoopPath.clear();
+        m_poolLoopBpm = 0.0;
         m_currentVideoPath.clear();
     }
 }
@@ -109,6 +114,7 @@ void VideoWidget::findCompanionVideo(const QString& audioPath) {
         const QString overridePath = mixxx::ControlCli::videoOverrideForDeck(deck);
         if (!overridePath.isEmpty() && QFileInfo::exists(overridePath)) {
             m_currentVideoPath = overridePath;
+            stopFallbackVisuals();
             if (m_pVideoEnabled->get()) {
                 slotVideoEnabled(1.0);
             }
@@ -124,6 +130,7 @@ void VideoWidget::findCompanionVideo(const QString& audioPath) {
         QString videoPath = basePath + ext;
         if (QFileInfo::exists(videoPath)) {
             m_currentVideoPath = videoPath;
+            stopFallbackVisuals();
             if (m_pVideoEnabled->get()) {
                 slotVideoEnabled(1.0);
             }
@@ -131,9 +138,21 @@ void VideoWidget::findCompanionVideo(const QString& audioPath) {
         }
     }
     m_currentVideoPath.clear();
+    stopFallbackVisuals();
     if (m_pVideoEnabled && m_pVideoEnabled->get() > 0.0) {
-        tryStartFallback();
+        tryStartFallbackChain();
     }
+}
+
+void VideoWidget::ensureDecoder() {
+    if (m_decoder) {
+        return;
+    }
+    m_decoder = new VideoDecoder(this);
+    connect(m_decoder, &VideoDecoder::frameDecoded,
+            this, &VideoWidget::slotFrameDecoded);
+    connect(m_decoder, &VideoDecoder::playbackEnded,
+            this, &VideoWidget::slotPlaybackEnded);
 }
 
 int VideoWidget::deckIndex() const {
@@ -143,22 +162,85 @@ int VideoWidget::deckIndex() const {
     return match.hasMatch() ? match.captured(1).toInt() : -1;
 }
 
-void VideoWidget::stopFallback() {
-    if (!m_usingFallback) {
+void VideoWidget::stopFallbackVisuals() {
+    stopPoolLoopFallback();
+    stopKenBurnsFallback();
+}
+
+void VideoWidget::stopKenBurnsFallback() {
+    if (!m_usingKenBurnsFallback) {
         return;
     }
     const int deck = deckIndex();
-    if (deck > 0) {
+    if (deck > 0 && !m_usingPoolLoop) {
         VideoMixer::instance().unregisterDecoder(deck);
     }
-    m_usingFallback = false;
+    m_usingKenBurnsFallback = false;
 }
 
-void VideoWidget::tryStartFallback() {
+void VideoWidget::stopPoolLoopFallback() {
+    if (!m_usingPoolLoop) {
+        return;
+    }
+    if (m_decoder) {
+        m_decoder->close();
+    }
+    m_usingPoolLoop = false;
+    m_poolLoopPath.clear();
+    m_poolLoopBpm = 0.0;
+}
+
+bool VideoWidget::tryStartFallbackChain() {
+    if (!m_pVideoFallback || m_pVideoFallback->get() <= 0.0) {
+        return false;
+    }
+    if (!m_currentVideoPath.isEmpty() || !m_pTrack) {
+        return false;
+    }
+    if (tryStartPoolLoop()) {
+        return true;
+    }
+    tryStartKenBurnsFallback();
+    return m_usingKenBurnsFallback;
+}
+
+bool VideoWidget::tryStartPoolLoop() {
+    if (!m_pTrack || !m_currentVideoPath.isEmpty()) {
+        return false;
+    }
+
+    const std::optional<VideoPoolEntry> match = VideoPool::instance().selectBest(
+            m_pTrack->getBpm(),
+            m_pTrack->getGenre());
+    if (!match.has_value()) {
+        return false;
+    }
+
+    stopKenBurnsFallback();
+    ensureDecoder();
+    m_decoder->setGroup(m_group);
+    m_decoder->setSyncMode(VideoSyncMode::PoolLoop);
+    m_decoder->setPoolLoopBpm(match->bpm);
+    m_decoder->openFile(match->path);
+    if (!m_decoder->isOpen()) {
+        m_decoder->setSyncMode(VideoSyncMode::Companion);
+        m_decoder->setPoolLoopBpm(0.0);
+        return false;
+    }
+
+    m_poolLoopPath = match->path;
+    m_poolLoopBpm = match->bpm;
+    m_usingPoolLoop = true;
+    m_hasVideo = true;
+    update();
+    return true;
+}
+
+void VideoWidget::tryStartKenBurnsFallback() {
     if (!m_pVideoFallback || m_pVideoFallback->get() <= 0.0) {
         return;
     }
-    if (!m_currentVideoPath.isEmpty() || !m_pTrack) {
+    if (!m_currentVideoPath.isEmpty() || !m_pTrack || m_usingPoolLoop) {
         return;
     }
     if (m_fallbackCover.isNull()) {
@@ -169,13 +251,13 @@ void VideoWidget::tryStartFallback() {
     if (deck > 0) {
         VideoMixer::instance().registerDecoder(deck, nullptr);
     }
-    m_usingFallback = true;
+    m_usingKenBurnsFallback = true;
     m_hasVideo = true;
-    updateFallbackFrame();
+    updateKenBurnsFallbackFrame();
 }
 
-void VideoWidget::updateFallbackFrame() {
-    if (!m_usingFallback || m_fallbackCover.isNull()) {
+void VideoWidget::updateKenBurnsFallbackFrame() {
+    if (!m_usingKenBurnsFallback || m_fallbackCover.isNull()) {
         return;
     }
     const double clock = ControlObject::get(ConfigKey(m_group, "video_audio_clock"));
@@ -198,31 +280,27 @@ void VideoWidget::slotCoverFound(const QObject* requester,
     }
     m_fallbackCover = pixmap.toImage();
     if (m_pVideoEnabled && m_pVideoEnabled->get() > 0.0 && m_currentVideoPath.isEmpty()) {
-        tryStartFallback();
+        tryStartFallbackChain();
     }
 }
 
 void VideoWidget::slotVideoEnabled(double v) {
     if (v > 0.0) {
         if (!m_currentVideoPath.isEmpty()) {
-            stopFallback();
-            if (!m_decoder) {
-                m_decoder = new VideoDecoder(this);
-                connect(m_decoder, &VideoDecoder::frameDecoded,
-                        this, &VideoWidget::slotFrameDecoded);
-                connect(m_decoder, &VideoDecoder::playbackEnded,
-                        this, &VideoWidget::slotPlaybackEnded);
-            }
+            stopFallbackVisuals();
+            ensureDecoder();
             m_decoder->setGroup(m_group);
+            m_decoder->setSyncMode(VideoSyncMode::Companion);
+            m_decoder->setPoolLoopBpm(0.0);
             m_decoder->openFile(m_currentVideoPath);
             m_hasVideo = true;
             update();
             return;
         }
-        tryStartFallback();
+        tryStartFallbackChain();
         update();
     } else {
-        stopFallback();
+        stopFallbackVisuals();
         if (m_decoder) {
             m_decoder->pause();
         }
@@ -261,8 +339,8 @@ void VideoWidget::slotFrameDecoded(const QImage& frame, double pts) {
 }
 
 void VideoWidget::slotTick() {
-    if (m_usingFallback) {
-        updateFallbackFrame();
+    if (m_usingKenBurnsFallback) {
+        updateKenBurnsFallbackFrame();
     }
     if (m_hasVideo && !m_currentFrame.isNull()) {
         update();
@@ -293,7 +371,8 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
         if (!m_currentVideoPath.isEmpty()) {
             p.setPen(Qt::white);
             p.drawText(rect(), Qt::AlignCenter, tr("Video Paused"));
-        } else if (m_pVideoFallback && m_pVideoFallback->get() > 0.0 && m_pTrack) {
+        } else if (m_pVideoFallback && m_pVideoFallback->get() > 0.0 && m_pTrack &&
+                !m_usingPoolLoop) {
             p.setPen(Qt::gray);
             p.drawText(rect(), Qt::AlignCenter, tr("Loading fallback..."));
         } else if (!m_group.isEmpty()) {

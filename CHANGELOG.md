@@ -10,6 +10,13 @@ Mixxx 2.5.6. Upstream Mixxx changelog follows.
 #### Video
 - **VideoFxChain** — beat-locked strobe + zoom pump (division CO, seek-stable beat index)
 - **VideoFallback** — album-art Ken Burns when no companion video (`video_fallback` CO)
+- **VideoPool** — beat-matched loop pool fallback (`--video-pool`, BPM-scaled decode sync)
+
+#### Planned (docs only)
+- **VJ integration** — OSC-out + Spout master (TODO 28, after NDI); spec `docs/vj-integration-spout-osc.md`
+
+#### CLI
+- `--video-pool <dir>` — directory of tagged visual loops for deck fallback
 
 ### 2026-07-26
 

@@ -111,6 +111,10 @@ class CmdlineArgs final {
         return m_importIntoCrateName;
     }
 
+    const QString& getVideoPoolPath() const {
+        return m_videoPoolPath;
+    }
+
     void setScaleFactor(double scaleFactor) {
         m_scaleFactor = scaleFactor;
     }
@@ -162,4 +166,5 @@ class CmdlineArgs final {
     bool m_hasImportCrateRequest;
     QString m_importCratePath;
     QString m_importIntoCrateName;
+    QString m_videoPoolPath;
 };

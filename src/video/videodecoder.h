@@ -19,6 +19,11 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 
+enum class VideoSyncMode {
+    Companion,
+    PoolLoop,
+};
+
 class VideoDecoder : public QThread {
     Q_OBJECT
   public:
@@ -40,6 +45,11 @@ class VideoDecoder : public QThread {
     double currentPosition() const;
 
     void setSpeed(double speed); // audio-driven speed multiplier
+
+    void setSyncMode(VideoSyncMode mode);
+    VideoSyncMode syncMode() const { return m_syncMode; }
+    void setPoolLoopBpm(double bpm);
+    double poolLoopBpm() const { return m_poolLoopBpm; }
 
     /// Sets the engine group ("[Channel1]" etc). Also derives the deck index
     /// used as the VideoMixer key. Must be called before openFile().
@@ -95,6 +105,9 @@ class VideoDecoder : public QThread {
     double m_speed = 1.0;
     double m_audioClock = 0.0;
     double m_lastPts = 0.0;
+
+    VideoSyncMode m_syncMode = VideoSyncMode::Companion;
+    double m_poolLoopBpm = 0.0;
 
     AVPacket* m_packet = nullptr;
     AVFrame* m_frame = nullptr;

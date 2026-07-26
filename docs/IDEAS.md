@@ -104,41 +104,26 @@ unknown.
 
 ## Infrastructure proposal A: the OSC server
 
-There is no OSC code anywhere in `src/`. A grep of 1887 files for `QUdpSocket`,
-`OscServer`, `11118`, and `11119` returns zero hits. Everything the README documents
-about OSC, and every deck and mixer tool in mixx-dj-mcp, depends on a component that
-does not exist.
+**Implemented 2026-07-26 (MVP):** `src/control/oscserver.{h,cpp}` — UDP 11119 in,
+11118 out; inbound deck/crossfader/effect mapping; outbound CO subscriptions;
+`/mixxxxx/ping` → `/mixxxxx/pong`. mixx-dj-mcp bridge probes heartbeat.
 
-**No new dependency needed.** OSC 1.0 wire format is a null-terminated, 4-byte-padded
-address string, a comma-prefixed type tag string, then 4-byte-aligned arguments.
-Hand-rolling encode and decode is under 150 lines. liblo is not worth the vcpkg
-friction.
+**Still open (→ TODO 28 phase A):** semantic **VJ outbound** schema
+(`/mixxxx/deck/N/beat_distance`, track strings, 50 Hz publisher). The existing server
+is a **control bridge** for mixx-dj-mcp, not a clock surface for external VJ tools.
+Extend `OscServer`; do not duplicate.
 
-Design:
+Original design notes (still valid for extensions):
 
-- `src/control/oscserver.{h,cpp}`, `QUdpSocket` bound to 11119
-- Generic address to ConfigKey translation: `/deck/N/xxx` becomes
-  `ConfigKey("[ChannelN]", "xxx")`, `/export/...` becomes `[Export]`. This covers
-  most of the surface without per-control code.
-- Inbound calls `ControlObject::set()` directly. ControlObjects are thread-safe, so
-  no marshalling to the GUI thread is required.
-- Outbound: `valueChanged` connections on a **configurable subscribed set**, encoded
-  and sent to 11118. Do not blanket-subscribe; Mixxx has thousands of COs and
-  flooding UDP at engine rate will hurt.
-- Instantiate from `CoreServices` next to `registerExportControls()`.
-- First pass reads enable, host, and ports from config keys. A preferences page is a
-  second step.
+- Hand-rolled OSC 1.0 encode/decode (~120 lines). liblo not worth vcpkg friction.
+- Inbound calls `ControlObject::set()` directly (thread-safe).
+- Outbound: subscribe a **configurable set** only; do not blanket-subscribe COs.
+- Preferences page for OSC still TODO.
 
-On the mixx-dj-mcp side, two prerequisites:
+mixx-dj-mcp side: heartbeat probe landed 2026-07-26; `autouse=True` mock in tests
+still TODO 19.
 
-- Remove `autouse=True` from `auto_mock_bridge` in `tests/conftest.py`, or any new
-  integration test gets mocked out like everything else.
-- `OscBridge.is_connected()` returns `self._running`, which only reports whether its
-  own thread started. UDP send never raises against a dead port, which is why every
-  tool currently reports success while doing nothing. Replace with a heartbeat query
-  and a timeout once there is something to answer it.
-
-Est: 1 day bidirectional, plus half a day for a preferences page.
+Est remaining for VJ OSC-out: half a day on top of MVP.
 
 ---
 
@@ -196,10 +181,12 @@ half of it.
 ## Suggested order
 
 1. CLI `--set-control` and `--dump-controls`. Cheapest, and it makes everything else
-   easier to test.
+   easier to test. **Done.**
 2. Beat-locked video FX. Highest visible payoff per hour, infrastructure already
-   there.
-3. CLI `--export-crate`, which closes the exporter story.
-4. OSC server, which makes mixx-dj-mcp real.
-5. NDI output.
-6. Video fallback chain.
+   there. **MVP done** (TODO 25 partial).
+3. CLI `--export-crate`, which closes the exporter story. **Done.**
+4. OSC control bridge (mixx-dj-mcp). **MVP done** (TODO 18).
+5. Video fallback chain. **In progress** (pool loops + Ken Burns; generative next).
+6. NDI output (OBS/Kick stream path).
+7. VJ integration: OSC-out + Spout master (TODO 28) — after NDI unless local VJ rig
+   is urgent. Spec: `docs/vj-integration-spout-osc.md`.

@@ -184,23 +184,44 @@ Solves the actual adoption blocker: most libraries have no companion video.
 slow zoom/pan when no companion video; wired in `VideoWidget` at 30fps;
 CO `[ChannelN],video_fallback` (default 1). `videofallback_test.cpp` (3 cases).
 
-Remaining chain steps: pool loops (2), generative visuals (3), polish (5).
-Est: 3 to 4 days for steps 2–3 + BPM-matched loop playback.
+**Partial 2026-07-27 (step 2):** `VideoPool` — tagged loop directory
+(`%MIXXX_SETTINGS%/video-pool` or `--video-pool`). Filename `{bpm}-{genre}-{energy}.mp4`
+or sidecar `.json`. Selection by BPM/genre/energy; playback via `VideoDecoder`
+pool sync mode (`deckBpm/loopBpm * rate_ratio`). `videopool_test.cpp` (5 cases).
+
+Remaining chain steps: generative visuals (3), polish (5).
+Est: 2 to 3 days for step 3 + energy from analyzer.
 
 ### 27. NDI output
 Turns the project from a closed box into a video source for real rigs.
 **Not implemented** — primer: [`docs/NDI.md`](docs/NDI.md). Help tab in mixx-dj-mcp webapp.
 Est: 2 to 3 days (CMake `NDI=ON`, SDK download, sender from `VideoMixer::blendFrame()`).
 
-### 28. Video hot cues
+### 28. VJ integration: OSC-out + Spout (Windows)
+Local interoperability with Magic, TouchDesigner, Synesthesia, etc. without buying Resolume.
+**Not implemented** — spec: [`docs/vj-integration-spout-osc.md`](vj-integration-spout-osc.md)
+(Opus research note 2026-07-27). **Sequence after NDI (27)** unless a same-PC VJ rig becomes
+urgent before OBS/Kick wiring.
+
+| Phase | Work | Est |
+|---|---|---|
+| A | **OSC-out for VJ** — extend `OscServer` with `/mixxxx/deck/N/*` schema (beat_distance, bpm, play, crossfader); 50 Hz timer; event-driven track metadata. Do **not** add a second UDP server. | ½ day |
+| B | **Spout master sender** — `spoutDX` from `VideoMixer::blendFrame()` (CPU `QImage` → DX11); dedicated sender thread; `#ifdef WIN32` only | 1–2 days |
+| C | Preferences + COs `[VJ],spout_enabled`, `[VJ],osc_enabled` | ½ day |
+| D | Per-deck Spout senders / Spout receiver — only after gig-testing A–C | later |
+
+Key spec finding: pipeline is CPU `QImage` end-to-end → use **SpoutDX**, not SpoutGL.
+NDI = network (OBS stream); Spout = same-machine GPU handoff. Different jobs.
+
+### 29. Video hot cues
 Nearly free now that sync works.
 Est: 1 day.
 
-### 29. Stem-driven visuals
+### 30. Stem-driven visuals
 Blocked on ONNX. Genuinely unprecedented if it lands.
-Est: unknown, gated on item 30.
+Est: unknown, gated on item 31.
 
-### 30. Turn `ONNX_RUNTIME` on and see what happens
+### 31. Turn `ONNX_RUNTIME` on and see what happens
 `src/stems/stem_separator.cpp` exists but has never been compiled in this build
 config. Its actual state is unknown and unassessed.
 Est: half a day to find out.

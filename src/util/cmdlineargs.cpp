@@ -439,6 +439,14 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
             QStringLiteral("name"));
     parser.addOption(importIntoCrate);
 
+    const QCommandLineOption videoPool(
+            QStringLiteral("video-pool"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Directory of beat-tagged visual loops for deck fallback.")
+                            : QString(),
+            QStringLiteral("dir"));
+    parser.addOption(videoPool);
+
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -605,6 +613,10 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
     if (m_hasImportCrateRequest) {
         m_importCratePath = parser.value(importCrate);
         m_importIntoCrateName = parser.value(importIntoCrate);
+    }
+
+    if (parser.isSet(videoPool)) {
+        m_videoPoolPath = parser.value(videoPool);
     }
 
     return true;

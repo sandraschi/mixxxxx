@@ -2255,6 +2255,7 @@ if(BUILD_TESTING)
       src/test/videomixer_test.cpp
       src/test/videofxchain_test.cpp
       src/test/videofallback_test.cpp
+      src/test/videopool_test.cpp
     )
   endif()
   if(BUILD_BENCH)
@@ -3664,6 +3665,7 @@ if(FFMPEG)
     src/video/videomixer.cpp
     src/video/videofxchain.cpp
     src/video/videofallback.cpp
+    src/video/videopool.cpp
     src/video/videothumbnail.cpp
   )
   target_compile_definitions(mixxx-lib PUBLIC

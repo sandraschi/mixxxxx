@@ -23,6 +23,7 @@ mixxx-test.exe                            876 tests (872 pass; 4 pre-existing Co
 mixxx-test.exe --gtest_filter=VideoMixerTest.*     7 tests, all passing
 mixxx-test.exe --gtest_filter=VideoFxChainTest.*   9 tests, all passing
 mixxx-test.exe --gtest_filter=VideoFallbackTest.*  3 tests, all passing
+mixxx-test.exe --gtest_filter=VideoPoolTest.*      5 tests, all passing
 mixxx-test.exe --gtest_filter=OscServerTest.*      2 tests, all passing
 ```
 
@@ -47,6 +48,7 @@ was caused by this fork and is now fixed. See ASSESSMENT section 7.2.
 | **Crossfader video mixing** | **Works** (was broken) | deck-keyed, blend curve corrected, tested |
 | **Beat-locked video FX** | **Works** (MVP) | strobe + zoom pump via `VideoFxChain`; division 1/2/4/8/16/32; 9 tests |
 | **Album-art Ken Burns fallback** | **Works** (step 4) | `VideoFallback` when no companion video; CO `video_fallback` (default on); 3 tests |
+| **Beat-matched pool loops** | **Works** (step 2 MVP) | `VideoPool` scans settings `video-pool/` or `--video-pool`; BPM-scaled sync in `VideoDecoder`; 5 tests |
 | `[Master]` video output panel | Works | consumes the corrected blend |
 | Non-yuv420p / NV12 sources | **Works** (was broken) | scaler built from actual frame format |
 | Pause / resume | **Works** (was UB) | QWaitCondition now holds its mutex |
@@ -124,8 +126,9 @@ relink fine regardless, so tests can be run without closing the app.
 | `docs/STATUS.md` | Current | this file — source of truth for Works/Absent |
 | `docs/TODO.md` | Current | ordered backlog |
 | `docs/NDI.md` | Current | planned feature primer (not implemented) |
+| `docs/vj-integration-spout-osc.md` | Current | Spout + VJ OSC spec (TODO 28, after NDI) |
 | `docs/SKINS.md` | Current | community install; MixxxxxVideo + Daylight |
-| `docs/IDEAS.md` | Current | beat FX → fallback → NDI order |
+| `docs/IDEAS.md` | Current | beat FX → fallback → NDI → VJ order |
 | `docs/PROGRESS-20260726.md` | Current | session log |
 | `docs/NOTES-20260726.md` | Current | decisions + glossary (NDI, skins, etc.) |
 | `README.md` | Partial | doc table updated; OSC/hardware/export bodies still stale (TODO 21) |
