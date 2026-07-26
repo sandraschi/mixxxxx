@@ -171,12 +171,8 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
     // Apply per-deck VFX
     double bright = m_pVideoBrightness ? m_pVideoBrightness->get() : 0.0;
     double contrast = m_pVideoContrast ? m_pVideoContrast->get() : 1.0;
-    double saturation = m_pVideoSaturation ? m_pVideoSaturation->get() : 1.0;
     if (!qFuzzyCompare(bright, 0.0) || !qFuzzyCompare(contrast, 1.0)) {
         frame = VideoMixer::instance().applyBrightnessContrast(frame, bright, contrast);
-    }
-    if (!qFuzzyCompare(saturation, 1.0)) {
-        frame = VideoMixer::instance().applySaturation(frame, saturation);
     }
 
     renderImage(p, frame);

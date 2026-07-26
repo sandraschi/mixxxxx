@@ -29,7 +29,7 @@ class VideoMixer {
     static QImage applySaturation(const QImage& src, double saturation);
 
   private:
-    VideoMixer() = default;
+    VideoMixer();
     ~VideoMixer() = default;
     VideoMixer(const VideoMixer&) = delete;
 
@@ -41,4 +41,6 @@ class VideoMixer {
 
     QMutex m_mutex;
     QMap<int, DeckFrame> m_frames;
+
+    std::unique_ptr<ControlObject> m_pVideoCrossfader;
 };

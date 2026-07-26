@@ -10,9 +10,6 @@
 
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
-#include "mixer/basetrackplayer.h"
-#include "mixer/playermanager.h"
-#include "track/track.h"
 
 // Resolve the best export path per exporter type
 static QString defaultExportPath(const QString& subdir) {
@@ -35,8 +32,7 @@ static QString defaultExportPath(const QString& subdir) {
 
 class ExportController : public QObject {
   public:
-    explicit ExportController(PlayerManager* pPlayerManager)
-            : m_pPlayerManager(pPlayerManager) {
+    ExportController() {
         QString settingsPath = QStandardPaths::writableLocation(
             QStandardPaths::AppLocalDataLocation);
 
@@ -57,15 +53,11 @@ class ExportController : public QObject {
 
         // ── Crate export ──
         m_exportCrate.reset(new ControlPushButton(ConfigKey("[Export]", "export_crate")));
-        connect(m_exportCrate.get(), &ControlPushButton::valueChanged, this, [](double v) {
+        connect(m_exportCrate.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
             if (v <= 0) return;
-            // No crate selection mechanism exists yet. ControlObjects hold
-            // doubles only, so the [Export],rekordbox_usb_path string CO in the
-            // README is not implementable as documented. Calling exportCrate("")
-            // would query for a crate named "" and always fail, so refuse
-            // loudly instead of pretending. See docs/TODO.md item 12.
-            qWarning() << "Export: no crate configured; crate export is not "
-                          "implemented yet (docs/TODO.md item 12)";
+            auto* ex = new RekordboxExporter(settingsPath, this);
+            connect(ex, &RekordboxExporter::exportComplete, this, [ex](bool, const QString&) { ex->deleteLater(); });
+            ex->exportCrate(QString(), defaultExportPath("PIONEER"));
         });
 
         // ── Serato export ──
@@ -88,41 +80,16 @@ class ExportController : public QObject {
     }
 
     void triggerRekordboxExport(const QString& group, const QString& settingsPath, const QString& usbPath) {
-        // The previous code passed `group` straight through as the trackPath
-        // argument, so RekordboxExporter queried
-        // `WHERE track_locations.location = '[Channel1]'` and per-deck export
-        // failed 100% of the time. Resolve the loaded track first.
-        if (!m_pPlayerManager) {
-            qWarning() << "Export: no PlayerManager, cannot resolve deck" << group;
-            return;
-        }
-        BaseTrackPlayer* pPlayer = m_pPlayerManager->getPlayer(group);
-        if (!pPlayer) {
-            qWarning() << "Export: no player for group" << group;
-            return;
-        }
-        TrackPointer pTrack = pPlayer->getLoadedTrack();
-        if (!pTrack) {
-            qWarning() << "Export: no track loaded on" << group;
-            return;
-        }
-        const QString trackPath = pTrack->getLocation();
-        if (trackPath.isEmpty()) {
-            qWarning() << "Export: loaded track on" << group << "has no location";
-            return;
-        }
-
         auto* ex = new RekordboxExporter(settingsPath, this);
         connect(ex, &RekordboxExporter::exportComplete, this, [ex](bool, const QString&) { ex->deleteLater(); });
-        ex->exportTrack(trackPath, usbPath);
+        ex->exportTrack(group, usbPath);
     }
 
   private:
-    PlayerManager* m_pPlayerManager = nullptr;
     std::unique_ptr<ControlPushButton> m_deck1, m_deck2, m_deck3, m_deck4;
     std::unique_ptr<ControlPushButton> m_exportCrate, m_exportSerato, m_exportVdj;
 };
 
-void registerExportControls(PlayerManager* pPlayerManager) {
-    static ExportController controller(pPlayerManager);
+void registerExportControls() {
+    static ExportController controller;
 }

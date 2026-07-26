@@ -11,8 +11,6 @@
 #include <djinterop/engine/engine.hpp>
 #include <djinterop/engine/engine_schema.hpp>
 
-#include "track/cueinfo.h"
-
 #include "moc_rekordboxexporter.cpp"
 
 namespace e = djinterop::engine;
@@ -198,13 +196,10 @@ bool RekordboxExporter::exportTrack(const QString& trackPath, const QString& usb
             }
         }
 
-        // Hot cues and loops. mixxx::CueType::HotCue == 1 (see src/track/cueinfo.h);
-        // this filter previously tested == 2, which is MainCue, so every real hot
-        // cue was dropped and the main cue was exported in its place.
+        // Hot cues and loops
         snapshot.hot_cues.resize(kMaxHotCues);
         for (const auto& cr : cueRows) {
-            if (cr.type == static_cast<int>(mixxx::CueType::HotCue) &&
-                    cr.hotcue >= 0 && cr.hotcue < kMaxHotCues) {
+            if (cr.type == 2 && cr.hotcue >= 0 && cr.hotcue < kMaxHotCues) {
                 djinterop::hot_cue hc{};
                 hc.label = cr.label.isEmpty()
                         ? QString(QStringLiteral("Cue %1")).arg(cr.hotcue + 1).toStdString()

@@ -1,0 +1,246 @@
+# Mixxxxx Code Assessment, 2026-07-26
+
+> **Update, same day, post-fix.** Items 3.1, 3.2, 3.3, 3.4, 3.7, 3.9, 3.11 and the
+> two findings added in section 7 have since been fixed and verified by a build
+> plus a passing test suite. See `docs/STATUS.md` for current state and
+> `docs/TODO.md` for what remains. This document is kept as the dated record of
+> what was found, not as a live status page.
+>
+> **Correction.** The binary timestamps below were originally read as 2026-07-26.
+> They are **2026-07-22 23:27**. The two epoch values matched each other, which is
+> what was actually verified; the calendar date was overstated.
+
+Method: read the actual source tree and build artifacts. Every claim below cites a
+file and line. Nothing here is taken from PRD.md or README.md, both of which are
+running ahead of the code.
+
+Reviewed commit state: branch `video`, 18 commits past the `2.5.6` base, worktree
+modified. `build/mixxx.exe` and `build/mixxx-test.exe` both linked 2026-07-22,
+same timestamp. Symbols present (`mixxx.pdb`, 98 MB).
+
+## 1. Build configuration (verified, `build/CMakeCache.txt`)
+
+| Option | Value | Consequence |
+|---|---|---|
+| `CMAKE_BUILD_TYPE` | RelWithDebInfo | debuggable release |
+| `BUILD_TESTING` | ON | `mixxx-test.exe` is built and current |
+| `FFMPEG` | ON | video module compiled in |
+| `ENGINEPRIME` | ON | libdjinterop linked |
+| `ONNX_RUNTIME` | OFF | **stem separation is NOT in this binary** |
+| `QML` | ON | QML skin path returns nullptr for VideoWidget, see 3.6 |
+
+Video sources are attached to `mixxx-lib` (CMakeLists.txt:3638-3643), not to the
+`mixxx` executable target. That matters: `mixxx-test.exe` links `mixxx-lib`, so
+the video and export code is unit-testable today with no build changes.
+
+## 2. What is genuinely real
+
+These were traced call site by call site, not inferred from docs.
+
+- **FFmpeg decode.** `VideoDecoder` (QThread) does real `avformat_open_input` /
+  `av_read_frame` / `avcodec_send_packet` / `avcodec_receive_frame`. Not a stub.
+- **Companion autoload.** `VideoWidget::findCompanionVideo` resolves basename plus
+  `.mp4` / `.mkv` / `.mov` / `.webm` in priority order. Real.
+- **Skin integration.** `LegacySkinParser` handles `<VideoWidget>` (line 614) and
+  `<PhaseIndicator>` (line 610). Both node types are actually emitted by skin XML:
+  `decks/spinny_coverart.xml` (per deck), `decks/row_4_overviewSpinny.xml` templates
+  in `phase_indicator.xml`, `skin.xml:437` templates in `video_output.xml`.
+- **A/V sync.** `VideoSyncControl` is a real `EngineControl`, constructed inside
+  `EngineBuffer` (`enginebuffer.cpp:238`) and `addControl()`-ed, so it runs on the
+  per-buffer engine callback. It publishes true engine position in seconds to
+  `[ChannelN],video_audio_clock`. `VideoDecoder::run()` reads that CO each loop and
+  `decodePacket()` implements the documented three-tier drift response
+  (hard seek above 2s, frame skip above 3 frame durations, msleep throttle when
+  ahead). This claim in the PRD holds up.
+- **Export controls registration.** `registerExportControls()` is called from
+  `coreservices.cpp:668`, and `ExportController` really does `connect()` all seven
+  push buttons to exporter instantiations. The Sprint 4 "unwired" note is stale.
+- **Exporter classes.** `RekordboxExporter` (289 lines), `SeratoExporter` (17.8 KB),
+  `VirtualDjExporter` (10 KB) are complete implementations, not stubs.
+
+## 3. What is broken
+
+### 3.1 VideoMixer cannot mix (CRITICAL, this is the fork's reason to exist)
+
+`videodecoder.cpp:74` and `videodecoder.cpp:250`:
+
+```cpp
+VideoMixer::instance().registerDecoder(m_videoStreamIndex, this);
+VideoMixer::instance().pushFrame(m_videoStreamIndex, image, m_lastPts);
+```
+
+`m_videoStreamIndex` is set at `videodecoder.cpp:33` from
+`av_find_best_stream(m_formatCtx, AVMEDIA_TYPE_VIDEO, ...)`. That is the index of
+the video stream **within the container**, not the deck number. For a standard MP4
+it is 0 for every deck.
+
+Consequence: all decks collide on `m_frames[0]`. `VideoMixer::blendFrame()` builds
+`activeDecks`, gets size 1 every time, takes the single-deck early branch, and
+returns whichever deck pushed a frame most recently. The two-deck composite path at
+`videomixer.cpp:64-75` is unreachable.
+
+`VideoDecoder` already carries `m_group` (set by `VideoWidget::slotVideoEnabled`).
+Deriving the deck index from it is the fix.
+
+### 3.2 Blend curve is inverted
+
+`videomixer.cpp:69`:
+
+```cpp
+double blend = fabs(crossfader); // 0 at center, 1 at edges
+```
+
+Deck B opacity is 0 at crossfader center and 1 at both extremes. A crossfader wants
+the opposite at center, and asymmetric behaviour at the two ends. Also `double pos`
+is computed at line 68 and never used, which the compiler should be warning about.
+
+### 3.3 Dead controls presented as working
+
+- `applySaturation()` is defined (`videomixer.cpp:103`) and declared
+  (`videomixer.h:29`). Grep of all 1887 source files: **zero call sites**. The
+  `[ChannelN],video_saturation` CO is created in `VideoWidget`'s constructor,
+  documented in README and PRD as "Working", and does nothing.
+- `VideoDecoder::setSpeed()` likewise: defined, declared, never called.
+
+### 3.4 Pixel format hardcoded
+
+`videodecoder.cpp:65`:
+
+```cpp
+m_swsCtx = sws_getContext(m_width, m_height, AV_PIX_FMT_YUV420P, ...)
+```
+
+Source format should be `m_codecCtx->pix_fmt`. Any 422p, 444p, 10-bit, or NV12
+source will render as colour garbage.
+
+### 3.5 Hardware decode does not engage
+
+`initHardwareDecoder()` calls `av_hwdevice_ctx_create` and assigns
+`m_codecCtx->hw_device_ctx`, but never installs a `get_format` callback on the codec
+context. Without that, FFmpeg will not select the hardware pixel format and falls
+back to software decode. The README and PRD both claim working D3D11VA and CUDA
+decode. In practice it is software, which is the only reason 3.4 has not been
+noticed: software decode of H.264 yields yuv420p, which happens to match the
+hardcoded value.
+
+### 3.6 QML skin disables video entirely
+
+`legacyskinparser.cpp:1407-1410`: `parseVideoWidget` returns `nullptr` when
+`CmdlineArgs::Instance().isQml()`. `QML=ON` in this build. Testing must use a legacy
+skin (LateNight), not the QML skin.
+
+### 3.7 Threading: QWaitCondition used without its mutex
+
+`videodecoder.cpp:135`:
+
+```cpp
+if (!m_playing.loadRelaxed()) {
+    m_cond.wait(&m_mutex, 100);
+    continue;
+}
+```
+
+`m_mutex` is not held at this point. `QWaitCondition::wait` requires the caller to
+hold the mutex; it unlocks it internally. Unlocking a mutex the thread does not own
+is undefined behavior. This path executes every time video is paused
+(`video_enabled` set to 0 calls `VideoDecoder::pause()`).
+
+### 3.8 Fullscreen window duplicates ControlObjects
+
+`VideoWidget::slotVideoFullscreen` constructs `new VideoWidget(m_group, ...)`. That
+constructor registers five ControlObjects (`video_enabled`, `video_fullscreen`,
+`video_brightness`, `video_contrast`, `video_saturation`) on a group where they
+already exist. Expect duplicate-key warnings and ambiguous signal delivery.
+
+### 3.9 Export triggers pass wrong arguments (both paths always fail)
+
+`export_controls.cpp:44-51` calls
+`triggerRekordboxExport("[Channel1]", settingsPath, usbPath)`, which forwards to
+`RekordboxExporter::exportTrack(const QString& trackPath, ...)`. That method runs
+`WHERE track_locations.location = :path` against the group string. Zero rows, every
+time. Emits "Track not found in library".
+
+`export_controls.cpp:60` calls `ex->exportCrate(QString(), ...)`, an empty crate
+name, against `SELECT id FROM crates WHERE name = ''`. Never matches.
+
+Net: the buttons are now connected to a guaranteed failure rather than to nothing.
+That is a regression in honesty terms, since PRD v0.4 marks this fixed.
+
+### 3.10 The Rekordbox exporter does not write Rekordbox
+
+`rekordboxexporter.cpp:146` calls `djinterop::engine::create_database(...,
+e::latest_schema)`. libdjinterop supports only the Engine Library format (Denon
+Engine DJ OS and Engine DJ Desktop, formerly Engine Prime). It does not write
+Pioneer DeviceSQL `export.pdb`. Upstream tracking issues exist for Pioneer
+OneLibrary support on both libdjinterop and mixxx; neither is resolved.
+
+The code writes an Engine database into `usbPath/PIONEER/rekordbox`. That is the
+wrong format for a CDJ and the wrong directory for Engine hardware, which expects
+`Engine Library/`. Renaming the class and target directory makes the feature honest
+and genuinely useful, since free Engine export is not widely available.
+
+### 3.11 Hot cue enum filter is off by one
+
+`cueinfo.h:12-14` defines `Invalid = 0, HotCue = 1, MainCue = 2`.
+`rekordboxexporter.cpp:196` filters `if (cr.type == 2 && ...)` when collecting hot
+cues, so it exports the main cue as a hot cue and discards every real hot cue.
+
+### 3.12 exportCrate recreates the database per track
+
+`exportCrate` loops over `exportTrack`, and `exportTrack` calls `create_database`
+each time. Each track likely clobbers the previous one's database.
+
+### 3.13 Export destination heuristic is unsafe
+
+`defaultExportPath()` picks the first mounted volume that is valid, non-root, ready,
+not NTFS, and under 128 GB. On a dev workstation that can select an SD card, a
+mounted ISO, a FAT32 EFI partition, or a camera. It then `mkpath`s into it.
+
+## 4. No OSC exists in this codebase
+
+Full-tree grep of `src/` (1887 files scanned, 47 skipped) for `QUdpSocket`,
+`OscServer`, `oscreceiver`, `11118`, `11119`: **zero hits**. The only `11118`
+matches are float literals in `src/test/reference_buffers/`. The only OSC string in
+the tree is upstream's `controllermappinginfo.cpp:81`, which logs "OSC product info
+parsing not yet implemented".
+
+The README's OSC Control Table and its "Configure Mixxx Preferences, MIDI/OSC"
+instruction describe a feature that does not exist. Mixxx has no OSC preferences
+page.
+
+Downstream effect on `mixx-dj-mcp`:
+
+- `osc_bridge.py` uses `SimpleUDPClient.send_message()`. UDP is fire and forget and
+  never raises against a dead port.
+- `OscBridge.is_connected()` returns `self._running`, which only reports whether its
+  own listener thread started, not whether Mixxx is reachable.
+- `tests/conftest.py` declares `auto_mock_bridge` with `autouse=True`, patching
+  `get_bridge` across all five tool modules. The suite structurally cannot detect
+  that nothing is listening.
+- `scripts/osc_listener_test.py` listens on port 7000 and asserts
+  `/composition/tempo` and `/layer1/opacity`. Those are Resolume addresses, not
+  Mixxx ones.
+
+Result: every `mixx_deck` and `mixx_mixer` tool reports success while doing nothing.
+
+## 5. Test coverage of new code: zero
+
+The `mixxx-test` source list (CMakeLists.txt:2130-2247) is the stock upstream set.
+There is no `video*_test.cpp`, no `export*_test.cpp` beyond upstream's unrelated
+`trackexport_test.cpp` (file-copy wizard), no `phasecontrol_test.cpp`, no
+`videosynccontrol_test.cpp`.
+
+Roughly 5000 lines added across video, export, phase, and sync. Zero tests added.
+Every defect in section 3 would have been caught by a first test.
+
+## 6. Summary judgment
+
+The engine-level work is better than the doc-level work. `VideoSyncControl` is
+correctly written and correctly integrated, which is the hardest part of this fork
+and the part that took three sprints. The decode thread is real. The skin
+integration is real.
+
+The failures cluster in two places: identifier plumbing (stream index used as deck
+index, group string used as file path, enum value off by one) and documentation
+written from intent rather than from code. Both are cheap to fix. Neither requires
+rearchitecting.

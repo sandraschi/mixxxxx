@@ -11,8 +11,6 @@
 #include <djinterop/engine/engine.hpp>
 #include <djinterop/engine/engine_schema.hpp>
 
-#include "track/cueinfo.h"
-
 #include "moc_rekordboxexporter.cpp"
 
 namespace e = djinterop::engine;

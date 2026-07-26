@@ -1,0 +1,194 @@
+# Mixxxxx TODO
+
+Ordered by value per hour. Estimates assume AI-assisted work on a codebase already
+loaded in context.
+
+Evidence for every item is in `docs/ASSESSMENT-20260726.md`, section numbers cited.
+Session results are in `docs/PROGRESS-20260726.md`. Feature proposals are in
+`docs/IDEAS.md`.
+
+---
+
+## DONE (2026-07-26 fix pass, built and tested)
+
+| # | Item | Assessment ref |
+|---|---|---|
+| 1 | VideoMixer keyed on deck number, not FFmpeg stream index | 3.1 |
+| 2 | Blend curve corrected to `(xfader+1)/2` | 3.2 |
+| 3 | `videomixer_test.cpp` written, 7 cases, registered under `if(FFMPEG)` | 5 |
+| 5 | Scaler built from actual frame format via `sws_getCachedContext` | 3.4 |
+| 6 | `QWaitCondition` now holds its mutex, pause is no longer UB | 3.7 |
+| 8 | `applySaturation` wired into `paintEvent` | 3.3 |
+| 11 | Per-deck export resolves the real track path via `PlayerManager` | 3.9 |
+| 14 | Hot cue filter uses `CueType::HotCue` instead of literal 2 | 3.11 |
+| - | Deep copy before compositing, no frame burn-in | 7.1 area |
+| - | Dead `[Mixer],video_crossfader` CO removed, unblocked the test suite | 7.1 |
+| - | `mkv`/`webm` excluded in `taglibStringToEnumFileType`, suite back to green | 7.2 |
+
+---
+
+## P0: verify the core feature by eye
+
+### 4. Gig-test the video mix
+The unit tests prove the mixer composites correctly. They do not prove it looks
+right in motion. Two decks, two companion videos, `[Skin],show_video_output` = 1,
+sweep the crossfader, watch the `[Master]` panel.
+
+Also worth checking here: the 2 second hard-seek threshold in the A/V sync drift
+logic. Fast repeated-direction scratching will likely oscillate between the skip
+and throttle tiers rather than scrub smoothly, and `av_seek_frame` only lands on
+keyframes. Functionally synced is not the same as frame-accurate under scratching.
+Est: one evening with real tracks.
+
+---
+
+## P1: remaining correctness
+
+### 7. Decide on hardware decode: fix it or drop the claim
+Assessment 3.5. `initHardwareDecoder()` assigns `hw_device_ctx` but installs no
+`get_format` callback, so hwaccel never engages and decode is silently software.
+Now that the scaler handles NV12 correctly (item 5), actually enabling hwaccel is
+safe to attempt.
+Est: 3 hours to fix properly, 10 min to drop the claim honestly.
+
+### 9. Fix or remove `setSpeed`
+Assessment 3.3. Dead method, never called. Either drive it from the deck rate CO or
+delete it.
+Est: 15 min.
+
+### 10. Stop duplicating COs in the fullscreen window
+Assessment 3.8. `slotVideoFullscreen` constructs a second `VideoWidget` on the same
+group, re-registering five ControlObjects on existing keys. Add a render-only mode,
+or split out a lightweight frame-display widget that registers nothing.
+Est: 1 hour.
+
+---
+
+## P2: exporters
+
+### 12. Crate export needs a selection mechanism
+Assessment 3.9. Currently refuses loudly rather than querying for a crate named
+`""`. ControlObjects hold doubles only, so the `[Export],rekordbox_usb_path` string
+CO documented in the README is not implementable as described.
+
+**Preferred solution: do this via the CLI (item 24), not a dialog.** A
+`--export-crate <name>` flag sidesteps the CO type limitation entirely, is
+scriptable, and is testable without a GUI. A preferences dialog can come later if
+anyone wants it interactively.
+Est: folded into item 24.
+
+### 13. Rename the Rekordbox exporter to what it is
+Assessment 3.10. libdjinterop writes Engine Library, not Pioneer DeviceSQL. Rename
+`RekordboxExporter` to `EngineExporter`, change the target directory from
+`PIONEER/rekordbox` to `Engine Library/`, update COs and docs. The feature becomes
+correct and genuinely useful instead of silently producing a USB stick no CDJ will
+read. Free Engine export is not widely available.
+Est: 2 hours plus doc updates.
+
+### 15. Do not recreate the database per track
+Assessment 3.12. `exportCrate` loops `exportTrack`, and `exportTrack` calls
+`create_database` each time. Open once, loop `create_track`.
+Est: 1 hour.
+
+### 16. Make the export destination explicit
+Assessment 3.13. `defaultExportPath()` picks the first ready non-NTFS volume under
+128 GB, which can select an SD card, a mounted ISO, or a FAT32 EFI partition, then
+`mkpath`s into it. Replace with an explicit path, ideally the same CLI flag as
+item 24.
+Est: 1 hour.
+
+### 17. Write `exporter_test.cpp`
+Seed a temp SQLite with the Mixxx schema, export one track, assert track count and
+hot cues. Locks in items 11, 14, 15.
+Est: 2 hours.
+
+---
+
+## P3: OSC server
+
+### 18. Implement an OSC server in mixxxxx
+Assessment 4. Does not exist at all today. Full design in `docs/IDEAS.md`.
+Est: 1 day bidirectional, plus half a day for a preferences page.
+
+### 19. Fix the mixx-dj-mcp test blindness
+`tests/conftest.py` declares `auto_mock_bridge` with `autouse=True`, so no test can
+observe a dead bridge. Make it opt-in, add an integration test that binds a real UDP
+socket on 11119. It fails today, correctly, and goes green when item 18 lands.
+Est: 1 hour.
+
+### 20. Make `is_connected()` mean something
+`osc_bridge.py` returns `self._running`, only whether its own thread started. Add a
+heartbeat query with a timeout. Depends on item 18.
+Est: 2 hours.
+
+---
+
+## P4: CLI
+
+### 24. Extend the command line
+Full rationale in `docs/IDEAS.md`. With no OSC and no scripting surface, the CLI is
+currently the only automation entry point, and it is thin. Highest-value flags:
+
+- `--set-control "[Group],name=value"` (repeatable), applied after startup
+- `--dump-controls` then exit, listing every registered CO
+- `--export-crate <name> --export-format <engine|serato|virtualdj> --export-path <dir>` then exit
+- `--video-screen <n>` to pick the fullscreen output monitor
+- `--load-video <deck> <path>` to override companion resolution
+
+`--set-control` and `--dump-controls` alone would have made this entire audit
+trivial and replace most of what OSC is wanted for during testing.
+Est: 1 day for the set listed.
+
+---
+
+## P5: new functionality
+
+See `docs/IDEAS.md` for full write-ups.
+
+### 25. Beat-locked video FX
+Highest leverage, because the expensive infrastructure already works.
+Est: 3 to 4 days.
+
+### 26. Video fallback chain
+Solves the actual adoption blocker: most libraries have no companion video.
+Est: 4 to 5 days including BPM-matched loop playback.
+
+### 27. NDI output
+Turns the project from a closed box into a video source for real rigs.
+Est: 2 to 3 days.
+
+### 28. Video hot cues
+Nearly free now that sync works.
+Est: 1 day.
+
+### 29. Stem-driven visuals
+Blocked on ONNX. Genuinely unprecedented if it lands.
+Est: unknown, gated on item 30.
+
+### 30. Turn `ONNX_RUNTIME` on and see what happens
+`src/stems/stem_separator.cpp` exists but has never been compiled in this build
+config. Its actual state is unknown and unassessed.
+Est: half a day to find out.
+
+---
+
+## P6: documentation debt
+
+### 21. Rewrite README.md and PRD.md against the code
+Both still document the OSC control table, hardware decode, and Pioneer pdb output
+as working. Warning banners are in place but the bodies are unchanged.
+
+Rule going forward: a feature is documented as working only after a test asserts it,
+or after a traced call-site verification recorded in STATUS.md.
+Est: 2 hours.
+
+### 22. Add a `--developer` smoke checklist to docs
+Until item 24 lands, the Developer Tools CO browser is the only way to exercise
+video and export controls. Write it down.
+Est: 30 min.
+
+### 23. Independent video crossfader
+The `[Mixer],video_crossfader` CO was dead and has been removed, so video currently
+follows the audio crossfader. An independent one with a link-to-audio toggle
+(default linked) is a real feature a video DJ would want.
+Est: 3 hours.

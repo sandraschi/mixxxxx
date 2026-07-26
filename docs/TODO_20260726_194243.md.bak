@@ -1,0 +1,178 @@
+# Mixxxxx TODO
+
+Ordered by value per hour, not by feature size. Estimates assume AI-assisted work
+on a codebase already loaded in context.
+
+Evidence for every item is in `docs/ASSESSMENT-20260726.md`, section numbers cited.
+
+---
+
+## P0: make the fork's core feature actually work
+
+### 1. Key VideoMixer on deck number, not FFmpeg stream index
+Assessment 3.1. **This is the single blocker on video mixing.**
+
+`VideoDecoder` already stores `m_group` ("[Channel1]"). Add `m_deckIndex`, derive it
+from the group once in `setGroup()`, and use it in both `registerDecoder()` and
+`pushFrame()` instead of `m_videoStreamIndex`.
+
+Files: `src/video/videodecoder.cpp:74`, `:250`, `src/video/videodecoder.h`.
+Est: 1 hour including a test.
+
+### 2. Fix the blend curve
+Assessment 3.2. `videomixer.cpp:69`. `fabs(crossfader)` gives pure A at center and
+full B at both ends. Decide the intended law (equal-power or linear) and implement
+it, then delete the unused `pos` at line 68.
+Est: 30 min.
+
+### 3. Write `videomixer_test.cpp`
+Push two synthetic QImages under two deck keys, sweep crossfader across
+-1, -0.5, 0, 0.5, 1, assert pixel values move monotonically from A to B. This test
+would have caught both items above on day one.
+
+Add filename to CMakeLists.txt around line 2130. `mixxx-lib` already carries the
+sources, no build changes needed.
+Est: 1 hour.
+
+### 4. Verify the fix by eye
+Two decks, two companion videos, `[Skin],show_video_output` = 1, sweep the
+crossfader, watch the `[Master]` panel.
+
+---
+
+## P1: correctness bugs that produce wrong output silently
+
+### 5. Use the real source pixel format
+Assessment 3.4. `videodecoder.cpp:65`: replace `AV_PIX_FMT_YUV420P` with
+`m_codecCtx->pix_fmt`. Currently masked by hardware decode not engaging (item 7).
+Est: 15 min. Test with a 10-bit or yuv422p clip.
+
+### 6. Fix `QWaitCondition` misuse
+Assessment 3.7. `videodecoder.cpp:135`. Lock `m_mutex` before `m_cond.wait()`, or
+replace the pause path with a `QSemaphore`. This is undefined behavior on every
+pause, currently unreported because it does not always crash.
+Est: 30 min.
+
+### 7. Decide on hardware decode: fix it or drop the claim
+Assessment 3.5. Either install a `get_format` callback so hwaccel actually engages
+(and then item 5 becomes load-bearing, since D3D11VA downloads as NV12), or remove
+`initHardwareDecoder()` and stop claiming it in README and PRD.
+Est: 3 hours to fix properly, 10 min to drop the claim honestly.
+
+### 8. Wire `applySaturation` or remove the CO
+Assessment 3.3. It is one line in `paintEvent`, next to the existing
+`applyBrightnessContrast` call. Do not leave a live CO that does nothing.
+Est: 15 min.
+
+### 9. Fix or remove `setSpeed`
+Assessment 3.3. Dead method. Either drive it from the deck rate CO or delete it.
+Est: 15 min.
+
+### 10. Stop duplicating COs in the fullscreen window
+Assessment 3.8. `slotVideoFullscreen` constructs a second `VideoWidget` on the same
+group. Add a render-only mode, or a separate lightweight frame-display widget that
+does not register controls.
+Est: 1 hour.
+
+---
+
+## P2: exporters, currently wired to guaranteed failure
+
+### 11. Pass the deck's actual track path, not the group string
+Assessment 3.9. `export_controls.cpp:44-51`. Resolve the loaded track for the group
+via `PlayerManager` / `BaseTrackPlayer::getLoadedTrack()`, then pass
+`pTrack->getLocation()`.
+Est: 1 hour.
+
+### 12. Pass a real crate name
+Assessment 3.9. `export_controls.cpp:60` passes `QString()`. Needs a crate selection
+mechanism. ControlObjects hold doubles only, so a `[Export],rekordbox_usb_path`
+string CO as documented in README is not possible. Either add a small preferences
+UI or a config-file setting.
+Est: 3 hours with a minimal dialog.
+
+### 13. Rename the Rekordbox exporter to what it is
+Assessment 3.10. libdjinterop writes Engine Library, not Pioneer DeviceSQL.
+Rename `RekordboxExporter` to `EngineExporter`, change the target directory from
+`PIONEER/rekordbox` to `Engine Library/`, update COs and docs. The feature becomes
+correct and useful instead of silently producing a USB stick no CDJ will read.
+
+If Pioneer export is genuinely wanted later, that is a separate project against the
+DeviceSQL format, not a config change.
+Est: 2 hours for the rename, plus doc updates.
+
+### 14. Fix hot cue type filter
+Assessment 3.11. `rekordboxexporter.cpp:196`: `cr.type == 2` should be
+`cr.type == 1`. `cueinfo.h:12-14` is the authority.
+Est: 5 min. Cover it in the exporter test.
+
+### 15. Do not recreate the database per track
+Assessment 3.12. Refactor `exportCrate` to open the Engine DB once and loop
+`create_track`, rather than calling `exportTrack` per row.
+Est: 1 hour.
+
+### 16. Make the export destination explicit
+Assessment 3.13. Replace the volume-size heuristic in `defaultExportPath()` with an
+explicit user-chosen path. Current logic can select an SD card or a mounted ISO and
+write into it.
+Est: 1 hour with a folder picker.
+
+### 17. Write `exporter_test.cpp`
+Seed a temp SQLite with the Mixxx schema, export one track, assert the output has
+the right track count and hot cues. Catches items 11, 14, 15 permanently.
+Est: 2 hours.
+
+---
+
+## P3: the OSC server (new functionality, not a fix)
+
+### 18. Implement an OSC server in mixxxxx
+Assessment 4. This does not exist at all today. Everything the README documents
+about OSC, and every tool in mixx-dj-mcp, depends on it.
+
+No new dependency needed. OSC 1.0 wire format is a null-terminated, 4-byte-padded
+address string, a comma type tag string, and 4-byte-aligned arguments. Roughly:
+
+- `src/control/oscserver.{h,cpp}`, `QUdpSocket` bound to 11119
+- minimal parser and encoder, no liblo
+- address mapping `/deck/N/xxx` to `ConfigKey("[ChannelN]", "xxx")`,
+  `/video_crossfader` to `ConfigKey("[Mixer]", "video_crossfader")`
+- inbound: `ControlObject::set()`. COs are thread-safe, no GUI thread marshalling
+  needed.
+- outbound: `valueChanged` connections on a subscribed CO set, send to 11118
+- preferences page for enable, host, ports, or config keys as a first pass
+
+Est: 1 day for a working bidirectional bridge, plus half a day for a preferences
+page.
+
+### 19. Fix the mixx-dj-mcp test blindness
+`tests/conftest.py` declares `auto_mock_bridge` with `autouse=True`, so no test can
+ever observe a dead bridge. Make it opt-in, then add one integration test that binds
+a real UDP socket on 11119 and asserts a packet arrives. It will fail today, which
+is correct, and go green when item 18 lands.
+Est: 1 hour.
+
+### 20. Make `is_connected()` mean something
+`osc_bridge.py` returns `self._running`, which is only whether its own thread
+started. Add a heartbeat: send a query, expect a reply on 11118 within a timeout.
+Depends on item 18.
+Est: 2 hours.
+
+---
+
+## P4: documentation debt
+
+### 21. Rewrite README.md and PRD.md against the code
+Both currently document the OSC control table, hardware decode, working saturation,
+Pioneer pdb output, and v0.4 exports as fixed. None of that is true.
+
+Rule going forward: a feature is documented as working only after a test asserts it.
+The pattern in this repo has been docs written from intent, then reused as evidence
+in the next review. `docs/STATUS.md` uses explicit status values to make that harder.
+Est: 2 hours.
+
+### 22. Add `--developer` smoke checklist to docs
+The Developer Tools CO browser is currently the only way to exercise the video and
+export controls, since OSC does not exist. Write it down so it is not rediscovered
+every session.
+Est: 30 min.

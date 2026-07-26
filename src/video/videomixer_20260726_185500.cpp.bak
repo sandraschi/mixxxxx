@@ -1,13 +1,18 @@
 #include "video/videomixer.h"
+#include "control/controlobject.h"
 #include "moc_videomixer.cpp"
 
 #include <QPainter>
 #include <QtMath>
-#include <algorithm>
 
 VideoMixer& VideoMixer::instance() {
     static VideoMixer inst;
     return inst;
+}
+
+VideoMixer::VideoMixer()
+    : m_pVideoCrossfader(std::make_unique<ControlObject>(
+          ConfigKey("[Mixer]", "video_crossfader"), false, false, false, 0.0)) {
 }
 
 void VideoMixer::registerDecoder(int deck, VideoDecoder* decoder) {
@@ -32,44 +37,44 @@ void VideoMixer::pushFrame(int deck, const QImage& frame, double pts) {
 QImage VideoMixer::blendFrame(double crossfader) {
     QMutexLocker lock(&m_mutex);
 
-    // Collect decks that currently hold a frame, in ascending deck order so the
-    // A/B assignment is deterministic (deck 1 = A, deck 2 = B for the common
-    // two-deck case).
+    // Find active decks on each side of the crossfader
+    int deckA = -1, deckB = -1;
     QList<int> activeDecks;
     for (auto it = m_frames.constBegin(); it != m_frames.constEnd(); ++it) {
-        if (it.value().active && !it.value().frame.isNull()) {
+        if (it.value().active && !it.value().frame.isNull())
             activeDecks.append(it.key());
-        }
     }
-    std::sort(activeDecks.begin(), activeDecks.end());
 
-    if (activeDecks.isEmpty()) {
+    if (activeDecks.isEmpty())
         return QImage();
-    }
 
     if (activeDecks.size() == 1) {
-        // Single source: hand back the stored frame directly. No painting
-        // happens, so no copy is needed.
-        return m_frames[activeDecks.first()].frame;
+        deckA = activeDecks[0];
+    } else {
+        // Crossfader maps to [-1, 1]: -1 = deck 1, 1 = deck 4
+        // Map crossfader position to deck pair
+        double pos = (crossfader + 1.0) / 2.0; // normalize to 0..1
+        int total = activeDecks.size();
+        int idx = qBound(0, (int)(pos * (total - 1)), total - 2);
+        deckA = activeDecks[idx];
+        deckB = activeDecks[qMin(idx + 1, total - 1)];
     }
 
-    const int deckA = activeDecks.at(0);
-    const int deckB = activeDecks.at(1);
+    DeckFrame& fA = m_frames[deckA];
+    QImage result = fA.frame;
 
-    // Crossfader runs -1 (full A) .. 0 (even) .. +1 (full B). Deck B opacity is
-    // therefore the normalized position. The previous fabs() form gave pure A at
-    // the centre and full B at BOTH extremes, which is not a crossfader.
-    const double opacityB = qBound(0.0, (crossfader + 1.0) / 2.0, 1.0);
+    if (deckB >= 0 && m_frames.contains(deckB)) {
+        DeckFrame& fB = m_frames[deckB];
+        if (!fB.frame.isNull() && fB.active) {
+            double pos = (crossfader + 1.0) / 2.0;
+            double blend = fabs(crossfader); // 0 at center, 1 at edges
 
-    // Deep copy before painting: QImage is implicitly shared, and compositing
-    // into a shallow copy risks burning deck B's overlay into deck A's cached
-    // frame, compounding on every repaint.
-    QImage result = m_frames[deckA].frame.copy();
-
-    QPainter p(&result);
-    p.setOpacity(opacityB);
-    p.drawImage(0, 0, m_frames[deckB].frame);
-    p.end();
+            QPainter p(&result);
+            p.setOpacity(blend);
+            p.drawImage(0, 0, fB.frame);
+            p.end();
+        }
+    }
 
     return result;
 }

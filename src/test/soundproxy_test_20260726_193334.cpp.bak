@@ -1097,19 +1097,10 @@ TEST_F(SoundSourceProxyTest, taglibStringToEnumFileType) {
     const QStringList fileTypes = SoundSourceProxy::getSupportedFileTypes();
     for (const auto& fileType : fileTypes) {
         qDebug() << fileType;
-        if (fileType != "okt" &&      // Oktalyzer
-                fileType != "stm" &&  // "Scream Tracker";
-                // Matroska containers are registered as supported file types by
-                // this fork (see SoundSourceProviderFFmpeg::getSupportedFileTypes)
-                // so FFmpeg can decode the audio track out of a video file.
-                // TagLib has no Matroska reader and mixxx::taglib::FileType has
-                // no corresponding enumerator, so there is nothing to map to.
-                fileType != "mkv" &&
-                fileType != "webm") {
+        if (fileType != "okt" &&     // Oktalyzer
+                fileType != "stm") { // "Scream Tracker";
             ASSERT_NE(mixxx::taglib::stringToEnumFileType(fileType),
-                    mixxx::taglib::FileType::Unknown)
-                    << "no TagLib FileType for supported file type "
-                    << fileType.toStdString();
+                    mixxx::taglib::FileType::Unknown);
         }
     }
 }

@@ -44,14 +44,6 @@ Output: `build\mixxx.exe` (~9.7 MB).
 
 ## OSC Control Table
 
-> **NOT IMPLEMENTED, 2026-07-26.** There is no OSC server in this codebase. A grep
-> of all 1887 files under `src/` for `QUdpSocket`, `OscServer`, `11118`, and `11119`
-> returns zero hits, and Mixxx has no MIDI/OSC preferences page. The table below is
-> a specification for future work, not a description of current behaviour. Use the
-> Developer Tools ControlObject browser (`mixxx.exe --developer`) instead. Build
-> plan: `docs/TODO.md` item 18.
-
-
 Control Mixxxxx via OSC (using [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp)
 or any OSC client). Configure Mixxx Preferences → MIDI/OSC:
 - Output port: **11118** (Mixxx sends status here)

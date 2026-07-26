@@ -2237,14 +2237,6 @@ if(BUILD_TESTING)
     src/test/wwidgetstack_test.cpp
     src/util/moc_included_test.cpp
   )
-  if(FFMPEG)
-    # VideoMixer only exists when the video module is compiled in.
-    set(
-      src-mixxx-test
-      ${src-mixxx-test}
-      src/test/videomixer_test.cpp
-    )
-  endif()
   if(BUILD_BENCH)
     set(
       src-mixxx-test

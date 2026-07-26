@@ -76,24 +76,15 @@ void VideoDecoder::openFile(const QString& filePath) {
 
     m_packet = av_packet_alloc();
     m_frame = av_frame_alloc();
-    // SwsContext is built lazily in convertFrameToImage() from the actual frame
-    // format, so hardware-downloaded and non-4:2:0 sources convert correctly.
-    m_swsCtx = nullptr;
-    m_swsSrcFormat = -1;
+    m_swsCtx = sws_getContext(m_width, m_height, AV_PIX_FMT_YUV420P,
+                              m_width, m_height, AV_PIX_FMT_RGBA,
+                              SWS_BILINEAR, nullptr, nullptr, nullptr);
 
     m_open = true;
     m_playing.storeRelaxed(1);
 
-    // Register with the global mixer for crossfader compositing. Keyed on the
-    // deck index, NOT the container stream index: every typical MP4 reports
-    // stream 0, so the old key collapsed all decks into a single mixer slot and
-    // made blending impossible.
-    if (m_deckIndex > 0) {
-        VideoMixer::instance().registerDecoder(m_deckIndex, this);
-    } else {
-        qWarning() << "VideoDecoder: group" << m_group
-                   << "is not a mixable deck, skipping VideoMixer registration";
-    }
+    // Register with the global mixer for crossfader compositing
+    VideoMixer::instance().registerDecoder(m_videoStreamIndex, this);
 
     if (!isRunning()) {
         start(QThread::NormalPriority);
@@ -111,15 +102,13 @@ void VideoDecoder::close() {
     }
 
     QMutexLocker lock(&m_mutex);
-    if (m_swsCtx) { sws_freeContext(m_swsCtx); m_swsCtx = nullptr; m_swsSrcFormat = -1; }
+    if (m_swsCtx) { sws_freeContext(m_swsCtx); m_swsCtx = nullptr; }
     if (m_frame) { av_frame_free(&m_frame); }
     if (m_packet) { av_packet_free(&m_packet); }
     if (m_codecCtx) { avcodec_free_context(&m_codecCtx); }
     if (m_formatCtx) { avformat_close_input(&m_formatCtx); }
     if (m_hwDeviceCtx) { av_buffer_unref(&m_hwDeviceCtx); }
-    if (m_deckIndex > 0) {
-        VideoMixer::instance().unregisterDecoder(m_deckIndex);
-    }
+    VideoMixer::instance().unregisterDecoder(m_videoStreamIndex);
     m_open = false;
     m_abort.storeRelaxed(0);
 }
@@ -155,12 +144,7 @@ void VideoDecoder::setSpeed(double speed) {
 void VideoDecoder::run() {
     while (!m_abort.loadRelaxed()) {
         if (!m_playing.loadRelaxed()) {
-            // QWaitCondition::wait() requires the caller to hold the mutex; it
-            // releases and re-acquires it internally. Calling it unlocked was
-            // undefined behavior and fired on every pause.
-            m_mutex.lock();
             m_cond.wait(&m_mutex, 100);
-            m_mutex.unlock();
             continue;
         }
 
@@ -269,58 +253,14 @@ QImage VideoDecoder::convertFrameToImage(const AVFrame* frame) {
         }
     }
 
-    // Build the scaler from the format of the frame we actually hold. The source
-    // format used to be hardcoded to YUV420P, which silently produced colour
-    // garbage for 4:2:2, 4:4:4, 10-bit and hardware-downloaded (NV12) frames.
-    const auto srcFormat = static_cast<AVPixelFormat>(srcFrame->format);
-    if (srcFormat == AV_PIX_FMT_NONE) {
-        if (swFrame) {
-            av_frame_free(&swFrame);
-        }
-        return QImage();
-    }
-    if (!m_swsCtx || m_swsSrcFormat != srcFrame->format) {
-        m_swsCtx = sws_getCachedContext(m_swsCtx,
-                srcFrame->width > 0 ? srcFrame->width : m_width,
-                srcFrame->height > 0 ? srcFrame->height : m_height,
-                srcFormat,
-                m_width,
-                m_height,
-                AV_PIX_FMT_RGBA,
-                SWS_BILINEAR,
-                nullptr,
-                nullptr,
-                nullptr);
-        m_swsSrcFormat = srcFrame->format;
-        if (!m_swsCtx) {
-            qWarning() << "VideoDecoder: no scaler for pixel format"
-                       << av_get_pix_fmt_name(srcFormat);
-            m_swsSrcFormat = -1;
-            if (swFrame) {
-                av_frame_free(&swFrame);
-            }
-            return QImage();
-        }
-        qDebug() << "VideoDecoder: scaler built for"
-                 << av_get_pix_fmt_name(srcFormat);
-    }
-
     QImage image(m_width, m_height, QImage::Format_RGBA8888);
     uint8_t* dst[] = { image.bits() };
     int stride[] = { static_cast<int>(image.bytesPerLine()) };
 
-    sws_scale(m_swsCtx,
-            srcFrame->data,
-            srcFrame->linesize,
-            0,
-            srcFrame->height > 0 ? srcFrame->height : m_height,
-            dst,
-            stride);
+    sws_scale(m_swsCtx, srcFrame->data, srcFrame->linesize, 0, m_height, dst, stride);
 
-    // Push frame to the global mixer for compositing, keyed on deck index.
-    if (m_deckIndex > 0) {
-        VideoMixer::instance().pushFrame(m_deckIndex, image, m_lastPts);
-    }
+    // Push frame to the global mixer for compositing
+    VideoMixer::instance().pushFrame(m_videoStreamIndex, image, m_lastPts);
 
     if (swFrame)
         av_frame_free(&swFrame);

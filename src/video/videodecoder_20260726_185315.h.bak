@@ -16,7 +16,6 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
 #include <libavutil/hwcontext.h>
-#include <libavutil/pixdesc.h>
 }
 
 class VideoDecoder : public QThread {
@@ -40,14 +39,7 @@ class VideoDecoder : public QThread {
     double currentPosition() const;
 
     void setSpeed(double speed); // audio-driven speed multiplier
-
-    /// Sets the engine group ("[Channel1]" etc). Also derives the deck index
-    /// used as the VideoMixer key. Must be called before openFile().
-    void setGroup(const QString& group);
-
-    /// Deck index (1-based) derived from the group, or -1 if the group is not
-    /// a mixable deck (e.g. "[Master]", "[Sampler1]", "[PreviewDeck1]").
-    int deckIndex() const { return m_deckIndex; }
+    void setGroup(const QString& group) { m_group = group; }
 
   signals:
     void frameDecoded(const QImage& frame, double pts);
@@ -79,12 +71,6 @@ class VideoDecoder : public QThread {
     double m_frameRate = 30.0;
 
     QString m_group;
-    int m_deckIndex = -1;
-
-    /// Pixel format the current SwsContext was built for. Compared against each
-    /// incoming frame so hardware-downloaded frames (NV12) and non-4:2:0 sources
-    /// are converted correctly instead of being reinterpreted as YUV420P.
-    int m_swsSrcFormat = -1;
 
     QMutex m_mutex;
     QWaitCondition m_cond;

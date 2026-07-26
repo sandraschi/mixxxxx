@@ -1,4 +1,5 @@
 #include "video/videomixer.h"
+#include "control/controlobject.h"
 #include "moc_videomixer.cpp"
 
 #include <QPainter>
@@ -8,6 +9,11 @@
 VideoMixer& VideoMixer::instance() {
     static VideoMixer inst;
     return inst;
+}
+
+VideoMixer::VideoMixer()
+    : m_pVideoCrossfader(std::make_unique<ControlObject>(
+          ConfigKey("[Mixer]", "video_crossfader"), false, false, false, 0.0)) {
 }
 
 void VideoMixer::registerDecoder(int deck, VideoDecoder* decoder) {
