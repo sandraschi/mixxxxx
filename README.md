@@ -34,7 +34,7 @@ Output: `build\mixxx.exe` (~9.7 MB).
 ### v2
 - **VideoMixer**: Singleton compositor with crossfader blending
 - **VFX**: Per-deck brightness/contrast/saturation COs
-- **Hardware decode**: D3D11VA + CUDA via `av_hwdevice_ctx_create`
+- **Hardware decode**: D3D11VA + CUDA attempted via `av_hwdevice_ctx_create` — **not active** in current build (no `get_format` callback; software decode only). See `docs/STATUS.md`.
 - **VideoThumbnail**: FFmpeg keyframe extraction, 500-entry LRU cache
 - **Video output panel**: Detachable fullscreen + projector output
 
@@ -42,15 +42,11 @@ Output: `build\mixxx.exe` (~9.7 MB).
 - **Phase indicator**: `[Channel{N}],phase` CO (0-360°), QPainter arc ring widget with green→yellow→orange→red gradient, `<PhaseIndicator>` skin element in LateNight
 - **Rekordbox export**: `RekordboxExporter` reads Mixxx SQLite, writes Pioneer .pdb via libdjinterop; `[Export],rekordbox_usb_path`, `[Export],export_crate`, `[Channel{N}],export_rekordbox` COs
 
-## OSC Control Table
+## OSC Control
 
-> **NOT IMPLEMENTED, 2026-07-26.** There is no OSC server in this codebase. A grep
-> of all 1887 files under `src/` for `QUdpSocket`, `OscServer`, `11118`, and `11119`
-> returns zero hits, and Mixxx has no MIDI/OSC preferences page. The table below is
-> a specification for future work, not a description of current behaviour. Use the
-> Developer Tools ControlObject browser (`mixxx.exe --developer`) instead. Build
-> plan: `docs/TODO.md` item 18.
-
+> **Status 2026-07-26:** OSC server **MVP shipped** in `src/control/oscserver.cpp`.
+> UDP **11119** in, **11118** out; heartbeat `/mixxxxx/ping` → `/mixxxxx/pong`.
+> Full truth table: [`docs/STATUS.md`](docs/STATUS.md). Preferences UI for OSC still TODO.
 
 Control Mixxxxx via OSC (using [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp)
 or any OSC client). Configure Mixxx Preferences → MIDI/OSC:
@@ -64,14 +60,12 @@ or any OSC client). Configure Mixxx Preferences → MIDI/OSC:
 | `/deck/[N]/video_brightness` | 0.0–1.0 | Adjust brightness |
 | `/deck/[N]/video_contrast` | 0.0–1.0 | Adjust contrast |
 | `/deck/[N]/video_saturation` | 0.0–1.0 | Adjust saturation |
-| `/video_crossfader` | 0.0–1.0 | Blend video between decks |
 | `/deck/[N]/phase` | 0–360 | Beat phase alignment (degrees) |
-| `/deck/[N]/export_rekordbox` | 0/1 | Trigger Rekordbox export for deck's track |
-| `/export/rekordbox_usb_path` | string | Set USB path for Pioneer export |
-| `/export/export_crate` | 0/1 | Trigger crate export to Rekordbox format |
+| `/mixxxxx/ping` | — | Bridge heartbeat (returns `/mixxxxx/pong`) |
 
-All video COs match Mixxx's native ControlObject addresses. Export COs are registered
-by `registerExportControls()` in `src/export/export_controls.cpp`.
+`/video_crossfader` and export string COs from early specs are **not** implemented as
+documented here — video follows the audio crossfader; crate export use `--export-crate`
+CLI. See `docs/TODO.md` items 12–13, 23.
 
 ## Companion MCP Server
 
@@ -128,9 +122,12 @@ commands. Custom MIDI/OSC mappings can be created in Mixxx Preferences → MIDI/
 | Topic | File |
 |---|---|
 | What works (source of truth) | [`docs/STATUS.md`](docs/STATUS.md) |
+| Session notes (NDI, skins, decisions) | [`docs/NOTES-20260726.md`](docs/NOTES-20260726.md) |
 | Skins (no marketplace — install guide) | [`docs/SKINS.md`](docs/SKINS.md) |
 | **NDI** (planned network video) | [`docs/NDI.md`](docs/NDI.md) |
 | Video feature roadmap | [`docs/IDEAS.md`](docs/IDEAS.md) |
+| Session notes | [`docs/NOTES-20260726.md`](docs/NOTES-20260726.md) |
+| Progress log | [`docs/PROGRESS-20260726.md`](docs/PROGRESS-20260726.md) |
 | Rane hardware handoff | [`docs/HANDOFF-RANE-MAPPING.md`](docs/HANDOFF-RANE-MAPPING.md) |
 
 ## Credits

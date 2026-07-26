@@ -24,6 +24,12 @@ Session results are in `docs/PROGRESS-20260726.md`. Feature proposals are in
 | - | Deep copy before compositing, no frame burn-in | 7.1 area |
 | - | Dead `[Mixer],video_crossfader` CO removed, unblocked the test suite | 7.1 |
 | - | `mkv`/`webm` excluded in `taglibStringToEnumFileType`, suite back to green | 7.2 |
+| - | **OSC server MVP** (UDP 11119/11118, `/mixxxxx/ping`) | 4, 18 |
+| - | **CLI** `--set-control`, `--dump-controls`, `--gig-script`, crate export/import | 24 |
+| - | **`docs/NDI.md`** primer (planned network video) | 27 doc |
+| - | **`docs/SKINS.md`** + **MixxxxxVideo** skin (Daylight scheme) | — |
+| - | README documentation table | 21 partial |
+| - | **mixx-dj-mcp Help page** (`/help`, NDI tab) | 33 |
 
 ---
 
@@ -189,17 +195,19 @@ Est: unknown, gated on item 30.
 config. Its actual state is unknown and unassessed.
 Est: half a day to find out.
 
----
-
 ## P6: documentation debt
 
 ### 21. Rewrite README.md and PRD.md against the code
-Both still document the OSC control table, hardware decode, and Pioneer pdb output
-as working. Warning banners are in place but the bodies are unchanged.
+Both still document hardware decode and Pioneer pdb output as working in the feature
+bullets and PRD body. The OSC section in README still carries a "NOT IMPLEMENTED"
+banner from before item 18 landed — **remove or replace that banner**; OSC MVP is in
+`src/control/oscserver.cpp`. Warning banners are in place on PRD but bodies are unchanged.
+
+Partial 2026-07-26: README doc table (`STATUS`, `SKINS`, `NDI`, `IDEAS`, Rane handoff).
 
 Rule going forward: a feature is documented as working only after a test asserts it,
 or after a traced call-site verification recorded in STATUS.md.
-Est: 2 hours.
+Est: 2 hours (README feature bullets + PRD remain).
 
 ### 22. Add a `--developer` smoke checklist to docs
 Developer Tools CO browser plus `--dump-controls` / `--set-control` cover video and export; write a short checklist anyway.

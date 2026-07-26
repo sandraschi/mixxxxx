@@ -86,6 +86,10 @@ From `docs/IDEAS.md` / `docs/CURSOR-PROMPT-FEATURES.md`:
 2. Video fallback chain (most libraries have no companion video)
 3. **NDI output** ← this doc
 
+**Fleet context:** Dani's Sunday Kick broadcast runs through **OBS**; **obs-mcp** is in the
+fleet for scene/source automation. NDI sender + obs-mcp is the intended Sunday-evening
+stack once items 1–2 land — mixxxxx → NDI → OBS → Kick, with MCP on both sides.
+
 NDI is the feature that makes mixxxxx a **node in a pro rig**. Fallback chain is the feature
 that makes video **usable on a normal library**. Pick order based on whether you care more
 about **club/stream plumbing** or **daily mixing with video**.

@@ -1,8 +1,9 @@
 # Mixxxxx Status
 
-Last verified against source: 2026-07-26, after the first fix pass.
-Base: Mixxx 2.5.6, branch `video`, 18 commits ahead, worktree modified.
+Last verified against source: 2026-07-26 (late session), after NDI/SKINS doc pass and Help webapp.
+Base: Mixxx 2.5.6, branch `video`, 23 commits ahead of tag `2.5.6`.
 Build: RelWithDebInfo, Ninja, vcpkg x64-windows-release.
+Latest push: `e429e2aaf9` on `origin/video`.
 
 Verification standard: everything marked **Works** below has either been traced
 from call site to effect, or is covered by a passing test, or both. Nothing is
@@ -45,6 +46,7 @@ was caused by this fork and is now fixed. See ASSESSMENT section 7.2.
 | Non-yuv420p / NV12 sources | **Works** (was broken) | scaler built from actual frame format |
 | Pause / resume | **Works** (was UB) | QWaitCondition now holds its mutex |
 | Independent video crossfader | **Absent** | CO was dead and removed; TODO 23 |
+| **NDI network output** | **Absent** (documented) | primer [`docs/NDI.md`](NDI.md); implementation TODO 27 |
 | Hardware decode (D3D11VA / CUDA) | **Dead** | no `get_format` callback, silently software |
 | Video thumbnails in library | Absent | `VideoThumbnail` exists, not wired to CoverArt DAO |
 | Stem separation | Absent from binary | `ONNX_RUNTIME=OFF` in this build |
@@ -94,6 +96,21 @@ Mixxxxx Video skin: **Works** — `res/skins/MixxxxxVideo/` + Daylight scheme (`
 `mixxx.exe` will not relink while the app is running: `LNK1104: cannot open file
 'mixxx.exe'`. Close Mixxx before building. `mixxx-lib.lib` and `mixxx-test.exe`
 relink fine regardless, so tests can be run without closing the app.
+
+## Documentation
+
+| Doc | Status | Note |
+|---|---|---|
+| `docs/STATUS.md` | Current | this file — source of truth for Works/Absent |
+| `docs/TODO.md` | Current | ordered backlog |
+| `docs/NDI.md` | Current | planned feature primer (not implemented) |
+| `docs/SKINS.md` | Current | community install; MixxxxxVideo + Daylight |
+| `docs/IDEAS.md` | Current | beat FX → fallback → NDI order |
+| `docs/PROGRESS-20260726.md` | Current | session log |
+| `docs/NOTES-20260726.md` | Current | decisions + glossary (NDI, skins, etc.) |
+| `README.md` | Partial | doc table updated; OSC/hardware/export bodies still stale (TODO 21) |
+| `PRD.md` | Stale | warning banner only (TODO 21) |
+| mixx-dj-mcp Help → NDI tab | Current | mirrors `docs/NDI.md` summary |
 
 ## Doc accuracy
 

@@ -1,5 +1,37 @@
 # Changelog
 
+## Mixxxxx fork (`video` branch)
+
+Changes below are on [sandraschi/mixxxxx](https://github.com/sandraschi/mixxxxx) atop
+Mixxx 2.5.6. Upstream Mixxx changelog follows.
+
+### 2026-07-26
+
+#### Documentation
+- Add `docs/NDI.md` (planned network video primer)
+- Add `docs/SKINS.md` (community skin install; MixxxxxVideo)
+- Add `docs/NOTES-20260726.md` (session decisions + glossary)
+- README documentation table; sync STATUS/TODO/PROGRESS
+
+#### Skins
+- **MixxxxxVideo** — full LateNight-derived `skin.xml`, Daylight colour scheme
+- Video preview/output default on; spinnies/cover default off
+
+#### CLI
+- `--export-crate` / `--import-crate` (engine, Serato, VirtualDJ formats)
+- `--set-control`, `--dump-controls`, `--gig-script`, `--no-banner`
+
+#### Control / integration
+- OSC server MVP (UDP 11119 in, 11118 out; `/mixxxxx/ping` → `/mixxxxx/pong`)
+- mixx-dj-mcp bridge heartbeat via ping/pong
+
+#### Video fixes (earlier same day)
+- VideoMixer deck-keyed compositing + corrected crossfader blend curve
+- `videomixer_test.cpp` (7 cases); saturation wired; NV12 scaler fix
+- Export path/hot-cue fixes; dead `video_crossfader` CO removed
+
+---
+
 ## [2.5.6](https://github.com/mixxxdj/mixxx/milestone/53) (2026-03-25)
 
 ### Library
