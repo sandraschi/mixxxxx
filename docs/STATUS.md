@@ -19,8 +19,10 @@ Status values:
 ## Test state
 
 ```
-mixxx-test.exe                            858 tests, all passing
+mixxx-test.exe                            873 tests, all passing
 mixxx-test.exe --gtest_filter=VideoMixerTest.*     7 tests, all passing
+mixxx-test.exe --gtest_filter=VideoFxChainTest.*   9 tests, all passing
+mixxx-test.exe --gtest_filter=OscServerTest.*      2 tests, all passing
 ```
 
 `src/test/videomixer_test.cpp` is new: 7 cases, registered under `if(FFMPEG)` in
@@ -42,6 +44,7 @@ was caused by this fork and is now fixed. See ASSESSMENT section 7.2.
 | `video_brightness` / `video_contrast` | Works | applied in paintEvent |
 | `video_saturation` | **Works** (was Dead) | wired in paintEvent, covered by test |
 | **Crossfader video mixing** | **Works** (was broken) | deck-keyed, blend curve corrected, tested |
+| **Beat-locked video FX** | **Works** (MVP) | strobe + zoom pump via `VideoFxChain`; division 1/2/4/8/16/32; 8 tests |
 | `[Master]` video output panel | Works | consumes the corrected blend |
 | Non-yuv420p / NV12 sources | **Works** (was broken) | scaler built from actual frame format |
 | Pause / resume | **Works** (was UB) | QWaitCondition now holds its mutex |
@@ -56,6 +59,21 @@ Video output panel is hidden on a fresh **LateNight** profile (`show_video_outpu
 
 Video requires a legacy skin. `parseVideoWidget` returns nullptr under QML.
 Mixxxxx Video skin: **Works** — `res/skins/MixxxxxVideo/` + Daylight scheme (`docs/SKINS.md`).
+
+Beat FX COs (per `[ChannelN]`, registered when skin loads a `VideoWidget`):
+
+| CO | Range | Effect |
+|---|---|---|
+| `video_beat_fx_strobe` | 0/1 | White flash on beat (first 15% of beat) |
+| `video_beat_fx_zoom` | 0/1 | Zoom pump on beat |
+| `video_beat_fx_division` | 0–5 | Maps to every 1/2/4/8/16/32 beats |
+| `video_beat_fx_strobe_amount` | 0–1 | Strobe intensity (default 1) |
+| `video_beat_fx_zoom_amount` | 0–1 | Zoom depth (default 1) |
+
+Beat index is derived from `beat_closest` + `bpm` (seek-stable), not an accumulated counter.
+
+Toggle via Developer Tools or `--set-control "[Channel1],video_beat_fx_strobe=1"`.
+Still TODO: cut, RGB split, feedback trail (IDEAS.md full set).
 
 ## Phase indicator
 

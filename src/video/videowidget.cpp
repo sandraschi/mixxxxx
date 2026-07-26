@@ -1,6 +1,7 @@
 #include "video/videowidget.h"
 #include "video/videodecoder.h"
 #include "video/videomixer.h"
+#include "video/videofxchain.h"
 #include "control/controlpushbutton.h"
 #include "control/controlobject.h"
 #include "control/controlpotmeter.h"
@@ -38,6 +39,19 @@ VideoWidget::VideoWidget(const QString& group, QWidget* parent)
         ConfigKey(group, "video_contrast"), 0.0, 3.0, true);
     m_pVideoSaturation = std::make_unique<ControlPotmeter>(
         ConfigKey(group, "video_saturation"), 0.0, 3.0, true);
+
+    m_pBeatFxStrobe = std::make_unique<ControlPushButton>(
+        ConfigKey(group, "video_beat_fx_strobe"), true, 0.0);
+    m_pBeatFxZoom = std::make_unique<ControlPushButton>(
+        ConfigKey(group, "video_beat_fx_zoom"), true, 0.0);
+    m_pBeatFxDivision = std::make_unique<ControlPotmeter>(
+        ConfigKey(group, "video_beat_fx_division"), 0.0, 5.0, true);
+    m_pBeatFxStrobeAmount = std::make_unique<ControlPotmeter>(
+        ConfigKey(group, "video_beat_fx_strobe_amount"), 0.0, 1.0, true);
+    m_pBeatFxZoomAmount = std::make_unique<ControlPotmeter>(
+        ConfigKey(group, "video_beat_fx_zoom_amount"), 0.0, 1.0, true);
+    m_pBeatFxStrobeAmount->set(1.0);
+    m_pBeatFxZoomAmount->set(1.0);
 
     m_repaintTimer = new QTimer(this);
     connect(m_repaintTimer, &QTimer::timeout, this, &VideoWidget::slotTick);
@@ -193,6 +207,12 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
     }
     if (!qFuzzyCompare(saturation, 1.0)) {
         frame = VideoMixer::instance().applySaturation(frame, saturation);
+    }
+
+    const QRegularExpressionMatch deckMatch =
+            QRegularExpression(QStringLiteral(R"(\[Channel(\d+)\])")).match(m_group);
+    if (deckMatch.hasMatch()) {
+        frame = VideoFxChain::applyForDeck(deckMatch.captured(1).toInt(), frame);
     }
 
     renderImage(p, frame);

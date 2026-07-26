@@ -11,6 +11,7 @@
 class VideoDecoder;
 class ControlPushButton;
 class ControlObject;
+class ControlPotmeter;
 
 class VideoWidget : public QWidget {
     Q_OBJECT
@@ -48,6 +49,11 @@ class VideoWidget : public QWidget {
     std::unique_ptr<ControlPotmeter> m_pVideoBrightness;
     std::unique_ptr<ControlPotmeter> m_pVideoContrast;
     std::unique_ptr<ControlPotmeter> m_pVideoSaturation;
+    std::unique_ptr<ControlPushButton> m_pBeatFxStrobe;
+    std::unique_ptr<ControlPushButton> m_pBeatFxZoom;
+    std::unique_ptr<ControlPotmeter> m_pBeatFxDivision;
+    std::unique_ptr<ControlPotmeter> m_pBeatFxStrobeAmount;
+    std::unique_ptr<ControlPotmeter> m_pBeatFxZoomAmount;
 
     QImage m_currentFrame;
     QMutex m_frameMutex;

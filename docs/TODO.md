@@ -30,6 +30,7 @@ Session results are in `docs/PROGRESS-20260726.md`. Feature proposals are in
 | - | **`docs/SKINS.md`** + **MixxxxxVideo** skin (Daylight scheme) | — |
 | - | README documentation table | 21 partial |
 | - | **mixx-dj-mcp Help page** (`/help`, NDI tab) | 33 |
+| - | **Beat-locked video FX MVP** (strobe, zoom, VideoFxChain) | 25 partial |
 
 ---
 
@@ -171,7 +172,10 @@ See `docs/IDEAS.md` for full write-ups.
 
 ### 25. Beat-locked video FX
 Highest leverage, because the expensive infrastructure already works.
-Est: 3 to 4 days.
+**MVP 2026-07-26:** `VideoFxChain` — strobe + zoom pump, beat division CO,
+applied in `VideoMixer::blendFrame()` (master output). `videofxchain_test.cpp` (8 cases).
+Remaining: cut, RGB split, feedback trail; skin UI buttons; phrase-aware 16/32 bars via beat grid.
+Est: 1–2 days for remaining effects + UI.
 
 ### 26. Video fallback chain
 Solves the actual adoption blocker: most libraries have no companion video.
