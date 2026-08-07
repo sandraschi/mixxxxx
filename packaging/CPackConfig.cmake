@@ -11,8 +11,13 @@ if(NOT GIT_DESCRIBE)
 else()
   set(PACKAGE_VERSION "${GIT_DESCRIBE}")
 endif()
-set(CPACK_PACKAGE_FILE_NAME "mixxx-${PACKAGE_VERSION}-${CPACK_SYSTEM_PROCESSOR}")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}-source")
+if(CPACK_MIXXXXX_BRANDING)
+  set(CPACK_PACKAGE_FILE_NAME "mixxxxx-${PACKAGE_VERSION}-win64")
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME "mixxxxx-${PACKAGE_VERSION}-source")
+else()
+  set(CPACK_PACKAGE_FILE_NAME "mixxx-${PACKAGE_VERSION}-${CPACK_SYSTEM_PROCESSOR}")
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_FILE_NAME}-source")
+endif()
 
 # The upstream version must not contain hyphen
 # . for normal versioning + for advance and ~ for decline the version

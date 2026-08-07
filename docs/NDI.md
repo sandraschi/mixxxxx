@@ -1,18 +1,20 @@
 # NDI output
 
-**Status:** **Partial MVP** (2026-07-27) — code in tree; builds without NDI SDK as a stub.
-**Not marked Works** until OBS or NDI Studio Monitor shows the feed with `-DNDI=ON`.
+**Status:** **Partial MVP** — GPL-clean dynamic load (2026-07-27). **Not marked Works** until
+OBS or NDI Studio Monitor confirms the feed with the NDI runtime installed.
+
+**Licensing:** [`docs/NDI-LICENSING.md`](NDI-LICENSING.md) (required reading for contributors).
 
 See `docs/TODO.md` item 27 and `docs/IDEAS.md` §3.
 
-NDI is how mixxxxx would send **live video over the network** to OBS, Resolume, vMix, and
-club media servers — without a second monitor cable or HDMI capture card.
+NDI is how mixxxxx sends **live video over the network** to OBS, Resolume, vMix, and
+club media servers — the **video pipe** in the [AV orchestrator stack](ORCHESTRATOR.md).
 
 ---
 
 ## What is NDI?
 
-**NDI** (Network Device Interface) is a royalty-free protocol from [NDI/Vizrt](https://www.ndi.tv/)
+**NDI®** (Network Device Interface) is a royalty-free protocol from [NDI/Vizrt](https://www.ndi.tv/)
 for sending high-quality audio/video over a LAN. Think of it as:
 
 > "This app appears as a **virtual camera / video source** on the network."
@@ -40,38 +42,50 @@ the same network (or NDI Bridge over WAN with extra setup).
 |---|---|
 | Per-deck video decode + crossfader blend | Works (`VideoMixer`) |
 | Fullscreen window on monitor 2 | Works (`VideoWidget`, CO) |
-| **NDI sender** | **Partial MVP** | `NdiOutput` + `NdiFrameUtil`; CO `[Ndi],enabled`, `[Ndi],source_name`; `--ndi-enable`; CMake `NDI=ON` + SDK for live send |
+| **NDI® sender** | **Partial MVP** | `NdiOutput` + `NdiFrameUtil`; dynamic runtime load; CO `[Ndi],enabled`, `[Ndi],source_name`; `--ndi-enable` |
 
-Today the video path is a **local window**. NDI would publish the same blended frame that
+Today the video path is a **local window**. NDI publishes the same blended frame that
 `VideoMixer::blendFrame()` already produces (QImage / RGB), on a timer aligned to video FPS.
+Send runs on a **dedicated thread** with a bounded queue (drops frames if behind).
 
 ---
 
-## Implemented (2026-07-27)
+## Setup (runtime)
 
-1. **CMake option** `NDI=ON` (default **OFF**) — requires `FFMPEG=ON`.
-2. **`NDI_SDK_DIR`** or auto-detect under `C:/Program Files/NDI/NDI {5,6} SDK`.
-3. **`NdiOutput`** (`src/video/ndioutput.{h,cpp}`) — 30 fps timer, reads `VideoMixer::blendFrame()`.
-4. **`NdiFrameUtil`** — letterbox to 16:9 ARGB32/BGRA for NDI (`ndi_frame_util_test.cpp`, 3 cases).
-5. **ControlObjects:**
-   - `[Ndi],enabled` (push button, default off)
-   - `[Ndi],source_name` (UserSettings string, default `"Mixxxxx"`)
-6. **CLI:** `--ndi-enable` sets `[Ndi],enabled` at startup.
-7. **Stub path:** without SDK, enabling logs a warning; no network traffic.
+Mixxxxx does **not** ship the NDI runtime. Users install it separately:
 
-**To verify:** install NDI SDK, rebuild with `-DNDI=ON -DNDI_SDK_DIR=...`, enable CO,
-open NDI Studio Monitor or OBS NDI Source.
+1. Download and install the [NDI redistributable](https://ndi.link/NDIRedistV5) (v6 also works; see licensing doc).
+2. Set environment variable **`NDI_RUNTIME_DIR_V5`** (or `NDI_RUNTIME_DIR_V6`) to the directory
+   containing `Processing.NDI.Lib.x64.dll`.
+3. Build Mixxxxx (NDI is **ON** by default when FFmpeg is enabled).
+4. Enable `[Ndi],enabled` or pass `--ndi-enable`.
+5. Open NDI Studio Monitor or OBS NDI Source and look for your source name (default `Mixxxxx`).
+
+If the runtime is missing, Mixxxxx logs a warning and shows a dialog with the download link.
+
+**Where the feed goes:** see [`NDI-TARGETS.md`](NDI-TARGETS.md) — OBS, Resolume, vMix, Studio Monitor, etc.
 
 ---
 
-## Original plan (reference)
+## Implemented
+
+1. **CMake** `NDI=ON` (default) — requires `FFMPEG=ON`; **no** link to NDI libraries.
+2. **MIT headers** in `lib/ndi/include/` (see `docs/NDI-LICENSING.md`).
+3. **`NdiRuntime`** — `LoadLibrary` / `NDIlib_v5_load`; env-based discovery.
+4. **`NdiOutput`** — 30 fps timer captures frames; **`NdiSenderWorker`** thread sends.
+5. **`NdiFrameUtil`** — letterbox to 16:9 BGRA (`ndi_frame_util_test.cpp`).
+6. **ControlObjects:** `[Ndi],enabled`, `[Ndi],source_name`.
+7. **CLI:** `--ndi-enable`.
+8. **`NDI=OFF`:** stub path; no NDI code compiled into send path.
+
+**To verify:** install runtime, enable CO, confirm source in NDI Studio Monitor.
 
 ---
 
 ## What you need on the receiving side
 
 1. Install **NDI Tools** (includes NDI Studio Monitor — free).
-2. In OBS: add **NDI Source** (obs-ndi plugin) or use dedicated NDI input.
+2. In OBS: add **NDI Source** (obs-ndi / DistroAV plugin) or use dedicated NDI input.
 3. Same Wi‑Fi/LAN as the mixxxxx machine (gigabit wired preferred for 1080p).
 
 ---
@@ -82,31 +96,16 @@ open NDI Studio Monitor or OBS NDI Source.
 |---|---|---|
 | **Second monitor HDMI** | Simple, zero SDK | Cable length, no OBS without capture |
 | **Window capture (OBS)** | No code in mixxxxx | Fragile, latency, scaling artifacts |
-| **NDI** | Clean pipe, industry standard | SDK + firewall; LAN bandwidth |
-| **Spout/Syphon** (Windows/macOS) | GPU texture share, low latency | Not cross-platform; not in plan yet |
-
----
-
-## Recommended build order (fleet)
-
-From `docs/IDEAS.md` / `docs/CURSOR-PROMPT-FEATURES.md`:
-
-1. Beat-locked video FX (uses existing beat COs)
-2. Video fallback chain (most libraries have no companion video)
-3. **NDI output** ← this doc
-
-**Fleet context:** Dani's Sunday Kick broadcast runs through **OBS**; **obs-mcp** is in the
-fleet for scene/source automation. NDI sender + obs-mcp is the intended Sunday-evening
-stack once items 1–2 land — mixxxxx → NDI → OBS → Kick, with MCP on both sides.
-
-NDI is the feature that makes mixxxxx a **node in a pro rig**. Fallback chain is the feature
-that makes video **usable on a normal library**. Pick order based on whether you care more
-about **club/stream plumbing** or **daily mixing with video**.
+| **NDI** | Clean pipe, industry standard | Runtime install; LAN bandwidth |
+| **Spout/Syphon** (Windows/macOS) | GPU texture share, low latency | Not cross-platform; separate feature |
 
 ---
 
 ## References
 
+- [NDI targets — OBS, Resolume, vMix, …](NDI-TARGETS.md)
+- [NDI licensing in Mixxxxx](NDI-LICENSING.md)
 - [NDI SDK download](https://ndi.video/for-developers/ndi-sdk/)
-- [OBS NDI plugin](https://github.com/obs-ndi/obs-ndi)
-- mixxxxx source: `src/video/ndioutput.{h,cpp}`, `src/video/ndi_frame_util.{h,cpp}`
+- [NDI dynamic loading docs](https://docs.ndi.video/all/developing-with-ndi/sdk/dynamic-loading-of-ndi-libraries)
+- [DistroAV (obs-ndi)](https://github.com/DistroAV/DistroAV)
+- mixxxxx source: `src/video/ndi_runtime.{h,cpp}`, `src/video/ndioutput.{h,cpp}`, `src/video/ndi_frame_util.{h,cpp}`

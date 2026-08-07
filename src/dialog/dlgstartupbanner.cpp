@@ -45,7 +45,9 @@ QString featureHtml() {
             "<li><b>Skins:</b> <i>Mixxxxx Video</i> — preview + output panels built in</li>"
             "<li><b>Export / import:</b> crates to Engine Prime, Serato, VirtualDJ</li>"
             "<li><b>OSC:</b> UDP 11119 in / 11118 out — mixx-dj-mcp companion</li>"
-            "<li><b>NDI:</b> network video out when built with <code>-DNDI=ON</code> + SDK</li>"
+            "<li><b>NDI® output:</b> network video (optional runtime — "
+            "<a href=\"https://ndi.link/NDIRedistV5\">NDI redistributable</a>; "
+            "see <code>docs/NDI-LICENSING.md</code>)</li>"
             "<li><b>CLI:</b> <code>--gig-script</code>, <code>--set-control</code>, "
             "<code>--export-crate</code>, <code>--video-pool</code></li>"
             "</ul>"
@@ -107,7 +109,7 @@ DlgStartupBanner::DlgStartupBanner(QWidget* parent, const UserSettingsPointer& p
     auto* pBody = new QLabel(featureHtml(), this);
     pBody->setWordWrap(true);
     pBody->setTextFormat(Qt::RichText);
-    pBody->setOpenExternalLinks(false);
+    pBody->setOpenExternalLinks(true);
     pRootLayout->addWidget(pBody, 1);
 
     auto* pShowAgain = new QCheckBox(tr("Show this welcome on startup"), this);

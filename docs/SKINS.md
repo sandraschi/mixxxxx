@@ -1,57 +1,30 @@
-# Mixxx / mixxxxx skins
+# Mixxxxx skins
 
-## No VDJ-style marketplace
+## Bundled video skin
 
-VirtualDJ ships device maps in-app and on their site. **Mixxx has no central skin store.**
-Distribution is forum threads, GitHub repos, and SourceForge zips — manual install.
+**Mixxxxx Video** lives at `res/skins/MixxxxxVideo/`. It is a thin skin:
 
-## Install any community skin
+- `skin.xml` — LateNight layout with video preview/output defaults
+- `style_daylight.qss` — optional **Daylight** color scheme (Preferences → Interface → Skin → color scheme)
+- SVG/assets — shared with LateNight (`skins:LateNight/...` references)
 
-1. Close Mixxx.
-2. Download and unzip so `skin.xml` is at the folder root.
-3. Copy the folder to `%LOCALAPPDATA%\Mixxx\skins\` (create `skins` if missing).
-4. Restart → **Preferences → Interface → Skin**.
+Install to user folder via mixx-dj-mcp: **Skins → Install Mixxxxx Video** (copies to `%LOCALAPPDATA%\Mixxx\skins\MixxxxxVideo`).
 
-Built-in skins live in `mixxxxx/res/skins/` and do not need copying.
+## Color schemes
 
-## Where to find skins
+| Scheme | File | Notes |
+|--------|------|-------|
+| PaleMoon | LateNight default QSS | Dark club |
+| Classic | LateNight | Dark |
+| Daylight | `style_daylight.qss` | Outdoor / bright rooms — **v2** (light waveform wells, Jul 2026) |
 
-| Source | URL | Notes |
-|---|---|---|
-| Mixxx Discourse (Skins category) | https://mixxx.discourse.group/c/skins/7 | Primary community hub; search "skin" |
-| esbrandt/mixxx-skins | https://github.com/esbrandt/mixxx-skins | **SVG source layers** for LateNight, Phoney, Outline — mod starting point, not ready-to-run zips |
-| djraw/Traktmixxx-RAW | https://github.com/djraw/Traktmixxx-RAW | Traktor-like 4-deck skin (check mixxxxx version compat) |
-| Dark Metal (legacy) | https://sourceforge.net/projects/dark-metal-mixxx-skin/ | Old but complete; forum-linked |
-| Mixxx wiki | https://github.com/mixxxdj/mixxx/wiki/Creating-Skins | Author docs, install steps |
-| mixx-dj-mcp manifest | `mixx_skin(operation="list")` | Curated pointers only; most entries are bundled |
+Current Daylight v2 removes PaleMoon dark waveform/toolbar wells. Install via mixx-dj-mcp **Skins** page; schemes live in `mixx-dj-mcp` → `docs/SKINMAKER.md`.
 
-Bright/daylight skins are rare. Bundled **Shade → Summer Sunset** scheme is the closest stock option.
-**Mixxxxx Video → Daylight** scheme targets outdoor use (see `res/skins/MixxxxxVideo/`).
+## mixx-dj-mcp
 
-## Mixxxxx Video skin
+- Webapp **Skins** page: `GET /api/skins` manifest
+- MCP tool: `mixx_skin` — `list`, `create_video_skin`, `create_skin` (LLM + inkscape-mcp)
 
-| File | Role |
-|---|---|
-| `res/skins/MixxxxxVideo/skin.xml` | Full LateNight layout; video defaults; Daylight scheme |
-| `res/skins/MixxxxxVideo/style_daylight.qss` | Light QSS (PaleMoon derivative) |
-| LateNight assets | Shared via `skins:LateNight/...` URLs — no duplicate SVG tree |
+## Authoring new skins
 
-Regenerate daylight QSS from PaleMoon:
-
-```powershell
-Copy-Item "D:\Dev\repos\mixxxxx\res\skins\LateNight\style_palemoon.qss" "D:\Dev\repos\mixxxxx\res\skins\MixxxxxVideo\style_daylight.qss"
-# then run color replacements (see git history) or edit in Inkscape + QSS editor
-```
-
-**Inkscape / inkscape-mcp:** edit `LateNight/palemoon/style/*.svg` or esbrandt layered sources;
-QSS handles panel backgrounds, SVG handles knobs/buttons.
-
-## mixx-dj-mcp skin tools
-
-```
-mixx_skin("list")
-mixx_skin("create_video_skin")          # → %LOCALAPPDATA%\Mixxx\skins\MixxxxxVideo
-mixx_skin("create_skin", name="...", prompt="bright daylight white panels")
-```
-
-Video requires **legacy skin** (not QML). `VideoWidget` is absent under QML path.
+See **mixx-dj-mcp** [`docs/SKINMAKER.md`](../../mixx-dj-mcp/docs/SKINMAKER.md) — skinmaker is integrated there (MCP + Skins webapp), not a separate repo.

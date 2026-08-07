@@ -59,7 +59,13 @@ lib/hidapi/**/.gitignore
 lib/hidapi/**/CMakeLists.txt
 lib/hidapi/**/Makefile*
 
-# Legacy compilation artifacts that are obsolete starting with 2.3
+# Exclude accidental local NDI SDK drops (proprietary binaries — never commit)
+lib/ndi/**/*.dll
+lib/ndi/**/*.lib
+lib/ndi/**/*.dylib
+lib/ndi/**/*.so*
+lib/ndi/**/Bin/
+lib/ndi/**/Lib/
 # TODO: Delete after 2.2 with SCons has been abandoned. Developers
 # are supposed to clean their project directory!
 src/mixxx.rc.include

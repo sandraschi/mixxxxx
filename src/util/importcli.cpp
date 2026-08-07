@@ -34,9 +34,15 @@ QString seratoUtf16BeToQString(const QByteArray& data) {
     if (data.isEmpty()) {
         return QString();
     }
-    return QString::fromUtf16(
-            reinterpret_cast<const char16_t*>(data.constData()),
-            data.size() / 2);
+    QString result;
+    result.reserve(data.size() / 2);
+    for (int i = 0; i + 1 < data.size(); i += 2) {
+        const char16_t ch = static_cast<char16_t>(
+                (static_cast<uchar>(data[i]) << 8) |
+                static_cast<uchar>(data[i + 1]));
+        result.append(QChar(ch));
+    }
+    return result;
 }
 
 QString parseSeratoNestedTrackPath(QIODevice* buffer) {
@@ -147,6 +153,12 @@ QString defaultCrateNameFromSource(const QString& sourcePath) {
 } // namespace
 
 namespace mixxx {
+
+QStringList ImportCli::parseImportLocations(
+        const QString& sourcePath,
+        QString* pError) {
+    return parseImportSourceLocations(sourcePath, pError);
+}
 
 bool ImportCli::executeImportCrate(
         const QString& sourcePath,

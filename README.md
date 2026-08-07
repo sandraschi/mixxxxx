@@ -5,9 +5,9 @@
 ![Build](https://img.shields.io/badge/build-CMake%2FNinja-green)
 ![License](https://img.shields.io/badge/license-GPLv2-blue)
 
-**Mixxxxx** extends [Mixxx](https://mixxx.org/) — the leading open-source DJ software —
-with real-time video playback via bundled FFmpeg. Load a track, get its companion video
-automatically decoded and mixed alongside the audio.
+**Mixxxxx** extends [Mixxx](https://mixxx.org/) with video and fleet integration. In this stack it acts as the **AV orchestrator hub**: mix audio and deck video locally, publish the blend via **NDI®** to Resolume/OBS, and accept automation over **OSC** from [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp).
+
+See [`docs/ORCHESTRATOR.md`](docs/ORCHESTRATOR.md) for the full rig diagram (control pipe vs video pipe).
 
 Companion MCP server: [mixx-dj-mcp](https://github.com/sandraschi/mixx-dj-mcp) (AI-powered OSC control).
 
@@ -42,7 +42,21 @@ Output: `build\mixxx.exe` (~9.7 MB).
 - **Phase indicator**: `[Channel{N}],phase` CO (0-360°), QPainter arc ring widget with green→yellow→orange→red gradient, `<PhaseIndicator>` skin element in LateNight
 - **Rekordbox export**: `RekordboxExporter` reads Mixxx SQLite, writes Pioneer .pdb via libdjinterop; `[Export],rekordbox_usb_path`, `[Export],export_crate`, `[Channel{N}],export_rekordbox` COs
 
-## OSC Control
+### NDI® network video (optional)
+
+Mixxxxx can publish the crossfader-blended video mix as an **NDI®** source on your LAN
+(`[Ndi],enabled`, `--ndi-enable`). This is **GPL-clean**: we ship MIT SDK headers only and
+load the proprietary runtime dynamically — we do **not** bundle NDI.
+
+1. Install the free [NDI redistributable](https://ndi.link/NDIRedistV5) (or v6 runtime).
+2. Set `NDI_RUNTIME_DIR_V5` to the folder containing `Processing.NDI.Lib.x64.dll`
+   (e.g. `C:\Program Files\NDI\NDI 5 Runtime\v5`).
+3. Enable NDI in Mixxxxx; receivers (OBS NDI Source, NDI Studio Monitor) subscribe by source name.
+
+Licensing details: [`docs/NDI-LICENSING.md`](docs/NDI-LICENSING.md). User guide: [`docs/NDI.md`](docs/NDI.md).
+
+Build with `-DNDI=OFF` to omit NDI send support entirely (default **ON** when FFmpeg is enabled).
+
 
 > **Status 2026-07-26:** OSC server **MVP shipped** in `src/control/oscserver.cpp`.
 > UDP **11119** in, **11118** out; heartbeat `/mixxxxx/ping` → `/mixxxxx/pong`.
@@ -124,7 +138,8 @@ commands. Custom MIDI/OSC mappings can be created in Mixxx Preferences → MIDI/
 | What works (source of truth) | [`docs/STATUS.md`](docs/STATUS.md) |
 | Session notes (NDI, skins, decisions) | [`docs/NOTES-20260726.md`](docs/NOTES-20260726.md) |
 | Skins (no marketplace — install guide) | [`docs/SKINS.md`](docs/SKINS.md) |
-| **NDI** (planned network video) | [`docs/NDI.md`](docs/NDI.md) |
+| **AV orchestrator** (mixxxxx hub, NDI, Resolume, OBS) | [`docs/ORCHESTRATOR.md`](docs/ORCHESTRATOR.md) |
+| **NDI® output** | [`docs/NDI.md`](docs/NDI.md) · [`docs/NDI-TARGETS.md`](docs/NDI-TARGETS.md) · [`docs/NDI-LICENSING.md`](docs/NDI-LICENSING.md) |
 | Video feature roadmap | [`docs/IDEAS.md`](docs/IDEAS.md) |
 | Session notes | [`docs/NOTES-20260726.md`](docs/NOTES-20260726.md) |
 | Progress log | [`docs/PROGRESS-20260726.md`](docs/PROGRESS-20260726.md) |

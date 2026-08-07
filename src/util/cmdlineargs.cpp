@@ -454,6 +454,39 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
                             : QString());
     parser.addOption(ndiEnable);
 
+    const QCommandLineOption oscDisable(
+            QStringLiteral("no-osc"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Disable the OSC server at startup.")
+                            : QString());
+    parser.addOption(oscDisable);
+
+    const QCommandLineOption oscPortIn(
+            QStringLiteral("osc-port-in"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "OSC UDP port for incoming commands (default 11119). "
+                                      "Must match mixx-dj-mcp send port.")
+                            : QString(),
+            QStringLiteral("port"));
+    parser.addOption(oscPortIn);
+
+    const QCommandLineOption oscPortOut(
+            QStringLiteral("osc-port-out"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "OSC UDP port for outgoing feedback (default 11118). "
+                                      "Must match mixx-dj-mcp listen port.")
+                            : QString(),
+            QStringLiteral("port"));
+    parser.addOption(oscPortOut);
+
+    const QCommandLineOption oscHostOut(
+            QStringLiteral("osc-host-out"),
+            forUserFeedback ? QCoreApplication::translate("CmdlineArgs",
+                                      "Host for OSC feedback datagrams (default 127.0.0.1).")
+                            : QString(),
+            QStringLiteral("host"));
+    parser.addOption(oscHostOut);
+
     const QCommandLineOption helpOption = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
 
@@ -627,6 +660,20 @@ bool CmdlineArgs::parse(const QStringList& arguments, CmdlineArgs::ParseMode mod
     }
 
     m_ndiEnable = parser.isSet(ndiEnable);
+
+    m_oscDisabled = parser.isSet(oscDisable);
+    if (parser.isSet(oscPortIn)) {
+        m_oscPortInSet = true;
+        m_oscPortIn = parser.value(oscPortIn).toInt();
+    }
+    if (parser.isSet(oscPortOut)) {
+        m_oscPortOutSet = true;
+        m_oscPortOut = parser.value(oscPortOut).toInt();
+    }
+    if (parser.isSet(oscHostOut)) {
+        m_oscHostOutSet = true;
+        m_oscHostOut = parser.value(oscHostOut);
+    }
 
     return true;
 }

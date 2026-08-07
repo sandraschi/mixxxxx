@@ -63,7 +63,7 @@ void StartupBanner::print(const CmdlineArgs& args) {
     printColor(args, "\033[38;5;214m", "  ·  video-enabled Mixxx fork                              ║\n");
     printColor(args, "\033[38;5;214m", "  ╠══════════════════════════════════════════════════════════════╣\n");
     printColor(args, "\033[38;5;245m", "  ║  ▶ FFmpeg video · beat FX · fallback chain (pool/gen/KB)     ║\n");
-    printColor(args, "\033[38;5;245m", "  ║  ▶ OSC 11118/11119 · mixx-dj-mcp · NDI (optional SDK)       ║\n");
+    printColor(args, "\033[38;5;245m", "  ║  ▶ OSC 11118/11119 · mixx-dj-mcp · NDI® (runtime optional)  ║\n");
     printColor(args, "\033[38;5;245m", "  ║  ▶ Export/import crates · phase · CLI gig scripts             ║\n");
     printColor(args, "\033[38;5;245m", "  ║  ▶ GUI welcome on startup (uncheck to hide)                   ║\n");
     printColor(args, "\033[38;5;214m", "  ╚══════════════════════════════════════════════════════════════╝\n");

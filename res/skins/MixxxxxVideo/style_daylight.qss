@@ -1,4 +1,5 @@
-/* Mixxxxx Video // Daylight theme (LateNight PaleMoon derivative)
+/* Mixxxxx Video // Daylight v2 — outdoor-friendly (mixxxx-skinmaker)
+   Light waveform/toolbar wells; no PaleMoon dark recesses.
 
 * containers
   * colors, borders, background tiles
@@ -58,7 +59,7 @@
     border-right: 1px solid #c8ccd4;
   }
 
-/* dim 1st-level containers */
+/* dim 1st-level containers — Daylight v2: light chrome */
 #ToolBar,
 #WaveformsContainer,
 #MainControls,
@@ -80,12 +81,12 @@
 #LibrarySplitter::handle,
 #LibraryFeatureControls,
 QAbstractScrollArea::corner {
-  border-top: 1px solid #212123;
-  border-right: 1px solid #111;
-  border-bottom: 1px solid #d8dce3;
-  border-left: 1px solid #191919;
+  border-top: 1px solid #c8ccd4;
+  border-right: 1px solid #b8bcc4;
+  border-bottom: 1px solid #d0d4dc;
+  border-left: 1px solid #b8bcc4;
   border-radius: 1px;
-  background-color: #151517;
+  background-color: #eef0f4;
   }
   #ToolBar {
     border-width: 0px 0px 1px 0px;
@@ -129,7 +130,7 @@ QAbstractScrollArea::corner {
     }
     #PreviewDeckRightSpacer,
     #SearchTreeSpacer {
-      border-right: 1px solid #222;
+      border-right: 1px solid #c8ccd4;
       background-color: transparent;
       }
       #PreviewDeckRightSpacer {
@@ -147,7 +148,7 @@ QAbstractScrollArea::corner {
     margin-top: 1px;
   }
 
-/* recessed regions */
+/* recessed regions — Daylight v2: light waveform/library wells */
 #WaveformBox1,
 #WaveformBox2,
 #WaveformBox3,
@@ -157,25 +158,25 @@ QAbstractScrollArea::corner {
 #OverviewBoxMini,
 #KeyText,
 WCueMenuPopup #CueLabelEdit {
-  border-top: 1px solid #0d0d0d;
-  border-left: 1px solid #121212;
-  border-bottom: 1px solid #2a2a2a;
-  border-right: 1px solid #252525;
-  background-color: #19191a;
+  border-top: 1px solid #b8bcc4;
+  border-left: 1px solid #c0c4cc;
+  border-bottom: 1px solid #d8dce3;
+  border-right: 1px solid #d0d4dc;
+  background-color: #e8eaef;
   }
 WTrackTableView,
 WLibraryTextBrowser,
 WLibrarySidebar,
 WSearchLineEdit {
-  border-top: 1px solid #000;
-  border-left: 1px solid #000;
-  border-bottom: 1px solid #1e1e1e;
-  border-right: 1px solid #222;
+  border-top: 1px solid #c8ccd4;
+  border-left: 1px solid #c0c4cc;
+  border-bottom: 1px solid #d0d4dc;
+  border-right: 1px solid #d8dce3;
   }
   WLibraryTextBrowser {
     margin-top: 1px;
     padding: 5px 0px 0px 8px;
-    border-top: 1px solid #212123;
+    border-top: 1px solid #c8ccd4;
   }
 
   #WaveformsFrame,
@@ -186,7 +187,7 @@ WSearchLineEdit {
   }
   #OverviewBox[highlight="1"],
   #OverviewBoxMini[highlight="1"] {
-    background-color: #151515;
+    background-color: #dce0e6;
   }
   #KeyText {
     border-width: 1px 0px 1px 0px;
@@ -197,30 +198,30 @@ WSearchLineEdit {
   #SamplerSettingsContainer,
   /* Prevents cut-off or shifted stars on macOS */
   WStarRating {
-    background-color: #19191a;
+    background-color: #e8eaef;
     }
     #DeckSettingsContainer,
     #DeckSettingsContainerCompact,
     #SamplerSettingsContainer {
       border-top: 1px solid #e4e6eb;
-      border-bottom: 1px solid #2a2a2a;
+      border-bottom: 1px solid #c8ccd4;
       }
       #DeckSettings,
       #SamplerSettings {
-        border-top: 1px solid #1f1f1f;
-        border-bottom: 1px solid #050505;
+        border-top: 1px solid #d0d4dc;
+        border-bottom: 1px solid #b8bcc4;
       }
 
 /* fillers */
 #FxRackFillerL,
 #FxRackFillerR,
 #MicAuxRackFiller {
-  border-top: 1px solid #1c1c1c;
-  border-left: 1px solid #191919;
+  border-top: 1px solid #c8ccd4;
+  border-left: 1px solid #b8bcc4;
   border-bottom: 1px solid #d8dce3;
-  border-right: 1px solid #111;
+  border-right: 1px solid #c0c4cc;
   border-radius: 1px;
-  background-color: #151517;
+  background-color: #eef0f4;
   }
 
 /* meters */
@@ -228,10 +229,10 @@ WSearchLineEdit {
 #VuMeterBoxMain,
 #VuMeterBoxMainSingle,
 #LatencyMeterBox {
-  background-color: #040404;
+  background-color: #2a2d35;
   }
   #LatencyMeterBox[highlight="0"] {
-    border: 1px solid #040404;
+    border: 1px solid #2a2d35;
   }
   #LatencyMeterBox[highlight="1"] {
     border: 1px solid yellow;
@@ -247,7 +248,7 @@ WSearchLineEdit {
 }
 
 #VuMainCover {
-  background-color: rgba(21, 21, 21, 150);
+  background-color: rgba(232, 234, 239, 150);
 }
 
 #SearchLineBox {
@@ -307,7 +308,7 @@ WSearchLineEdit {
   }
   #MainMixerSeparator {
     border-left: 1px solid #c8ccd4;
-    border-right: 1px solid #222;
+    border-right: 1px solid #c8ccd4;
   }
   #FxSlotSeparatorH {
     border-top: 1px solid #c8ccd4;
@@ -343,11 +344,11 @@ WTrackProperty:hover[selected="true"],
 WTrackProperty[selected="true"],
 #BpmTapContainer:hover,
 #PlayPositionText:hover, #PlayPositionTextSmall:hover {
-  background-color: #151517;
+  background-color: #dce0e6;
   }
   WTrackProperty:hover[selected="true"],
   WTrackProperty[selected="true"] {
-    background-color: #181819;
+    background-color: #d0d4dc;
   }
   #BpmTap[pressed="true"],
   WTrackProperty[selected="true"] {
@@ -1142,27 +1143,27 @@ WEffectSelector:!editable:on {
 
 #SubmenuCover,
 #DeckSizeCover[highlight="0"] {
-  background-color: rgba(15, 15, 15, 180);
+  background-color: rgba(232, 234, 239, 200);
 }
 #DeckSizeCover[highlight="1"] {
   background-color: qlineargradient(x1: 0, y1: 0, x2: 1, y2: 0,
-    stop: 0 rgba(15, 15, 15, 220),
-    stop: 0.70 rgba(15, 15, 15, 220),
+    stop: 0 rgba(232, 234, 239, 220),
+    stop: 0.70 rgba(232, 234, 239, 220),
     stop: 0.71 transparent,
     stop: 1 transparent);
 }
 #SkinSettingsMixerToggle {
-  background-color: rgba(15, 15, 15, 255);
+  background-color: rgba(238, 240, 244, 255);
 }
 
 /* Cover for the beatgrid edit buttons in the waveform container
    and the CurPos button in the deck settings near the overview.
    Hue has to match the bg color of the buttons want to we cover */
 #BeatEditCover {
-  background-color: rgba(21, 21, 23, 180);
+  background-color: rgba(232, 234, 239, 200);
 }
 #BeatEditCoverDecks {
-  background-color: rgba(25, 25, 26, 180);
+  background-color: rgba(226, 229, 235, 200);
 }
 /*********************************************************************
 ******************* Container layouts, margins etc. *****************/
@@ -1600,7 +1601,7 @@ WPushButton#FxToggleButton[displayValue="0"],
 WBeatSpinBox,
 WBeatSpinBox::up-button,
 WBeatSpinBox::down-button {
-  background-color: #121213;
+  background-color: #e4e6eb;
   }
   /* dim buttons in top-level containers */
   #LoopControls WPushButton[displayValue="0"],
@@ -1613,12 +1614,12 @@ WBeatSpinBox::down-button {
   WPushButton#LoopActivate[displayValue="0"], /* in compact deck */
   WTrackTableViewHeader,
   WTrackTableViewHeader::section {
-    background-color: #171719;
+    background-color: #dce0e6;
   }
   /* make Fx parameter buttons brighter so they stand out in 'fx focus' mode
     (parameters row of focused effect is marked = dark bg, colored border) */
   WPushButton#FxParameterButton[displayValue="0"] {
-    background-color: #2a2a2c;
+    background-color: #d0d4dc;
   }
 
   /* even buttons in 2nd level containers */
@@ -1653,12 +1654,12 @@ WBeatSpinBox::down-button {
   #spinBoxTransition::down-button,
   QPushButton#pushButtonAutoDJ:enabled:!checked,
   #LibraryFeatureControls QPushButton:enabled {
-    background-color: #222;
+    background-color: #c8ccd4;
   }
-  /* dark buttons in toolbar */
+  /* toolbar buttons — Daylight v2 */
   #ToolBar WPushButton[displayValue="0"],
   #MixerMainHeadphone #FxAssignButtons WPushButton[displayValue="0"] {
-    background-color: #151517;
+    background-color: #e4e6eb;
   }
 
 /* Orange for 'active' status */

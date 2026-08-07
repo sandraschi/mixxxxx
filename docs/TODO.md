@@ -230,9 +230,7 @@ Blocked on ONNX. Genuinely unprecedented if it lands.
 Est: unknown, gated on item 31.
 
 ### 31. Turn `ONNX_RUNTIME` on and see what happens
-`src/stems/stem_separator.cpp` exists but has never been compiled in this build
-config. Its actual state is unknown and unassessed.
-Est: half a day to find out.
+**Compile probe done 2026-07-27** on goliath — `just probe-onnx-stems` passes; `stem_separator.cpp` links. Remaining: Demucs model, `stem_separate` CO, MCP tool.
 
 ## P6: documentation debt
 

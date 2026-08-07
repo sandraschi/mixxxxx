@@ -119,6 +119,28 @@ class CmdlineArgs final {
         return m_ndiEnable;
     }
 
+    bool getOscDisabled() const {
+        return m_oscDisabled;
+    }
+    bool getOscPortInSet() const {
+        return m_oscPortInSet;
+    }
+    bool getOscPortOutSet() const {
+        return m_oscPortOutSet;
+    }
+    bool getOscHostOutSet() const {
+        return m_oscHostOutSet;
+    }
+    int getOscPortIn() const {
+        return m_oscPortIn;
+    }
+    int getOscPortOut() const {
+        return m_oscPortOut;
+    }
+    const QString& getOscHostOut() const {
+        return m_oscHostOut;
+    }
+
     void setScaleFactor(double scaleFactor) {
         m_scaleFactor = scaleFactor;
     }
@@ -172,4 +194,11 @@ class CmdlineArgs final {
     QString m_importIntoCrateName;
     QString m_videoPoolPath;
     bool m_ndiEnable = false;
+    bool m_oscDisabled = false;
+    bool m_oscPortInSet = false;
+    bool m_oscPortOutSet = false;
+    bool m_oscHostOutSet = false;
+    int m_oscPortIn = 11119;
+    int m_oscPortOut = 11118;
+    QString m_oscHostOut;
 };

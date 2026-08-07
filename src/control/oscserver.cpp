@@ -11,6 +11,7 @@
 #include "control/controlproxy.h"
 #include "mixer/playermanager.h"
 #include "moc_oscserver.cpp"
+#include "util/cmdlineargs.h"
 #include "util/logging.h"
 
 namespace mixxx {
@@ -92,18 +93,32 @@ void OscServer::start() {
     }
 
     const bool enabled = m_pConfig->getValue<bool>(ConfigKey("[Osc]", "enabled"), true);
+    const auto& args = CmdlineArgs::Instance();
+    if (args.getOscDisabled()) {
+        qInfo() << "OSC server disabled via --no-osc";
+        return;
+    }
     if (!enabled) {
         qInfo() << "OSC server disabled via [Osc],enabled";
         return;
     }
 
-    const int portIn = m_pConfig->getValue<int>(
+    int portIn = m_pConfig->getValue<int>(
             ConfigKey("[Osc]", "port_in"), kDefaultPortIn);
+    if (args.getOscPortInSet()) {
+        portIn = args.getOscPortIn();
+    }
     m_sendPort = static_cast<quint16>(m_pConfig->getValue<int>(
             ConfigKey("[Osc]", "port_out"), kDefaultPortOut));
+    if (args.getOscPortOutSet()) {
+        m_sendPort = static_cast<quint16>(args.getOscPortOut());
+    }
     const QString hostOut = m_pConfig->getValueString(ConfigKey("[Osc]", "host_out"));
     if (!hostOut.isEmpty()) {
         m_sendHost = QHostAddress(hostOut);
+    }
+    if (args.getOscHostOutSet()) {
+        m_sendHost = QHostAddress(args.getOscHostOut());
     }
 
     if (!m_pReceiveSocket->bind(QHostAddress::Any, static_cast<quint16>(portIn))) {

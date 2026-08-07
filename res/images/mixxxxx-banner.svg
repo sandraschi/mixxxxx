@@ -21,8 +21,8 @@
   <circle cx="40" cy="78" r="6" fill="url(#amber)"/>
   <circle cx="64" cy="78" r="6" fill="url(#amber)" opacity="0.55"/>
   <text x="120" y="52" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="url(#amber)">Mixxxxx</text>
-  <text x="120" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#c8b896">video · beat FX · fallback chain · OSC · NDI</text>
-  <text x="120" y="98" font-family="Consolas, monospace" font-size="11" fill="#8a7a60">mixx-dj-mcp · CLI gig scripts · welcome dialog on startup</text>
+  <text x="120" y="78" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#c8b896">video / beat FX / fallback / OSC / NDI</text>
+  <text x="120" y="98" font-family="Consolas, monospace" font-size="11" fill="#8a7a60">mixx-dj-mcp / CLI gig scripts / welcome dialog</text>
   <rect x="360" y="20" width="104" height="80" rx="6" fill="#15110c" stroke="#3d3428" stroke-width="1"/>
   <rect x="372" y="32" width="12" height="56" rx="2" fill="url(#amber)" opacity="0.9"/>
   <rect x="390" y="44" width="12" height="44" rx="2" fill="url(#amber)" opacity="0.65"/>

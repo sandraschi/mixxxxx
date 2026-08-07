@@ -1,0 +1,7 @@
+Mixxxxx is a video-enabled fork of Mixxx 2.5.6 for the MCP fleet.
+
+Per-deck FFmpeg video, beat-locked visuals, OSC control (ports 11119/11118),
+and mixx-dj-mcp integration. Uses the same Mixxx library database path —
+uninstall upstream Mixxx before installing if you want a clean swap.
+
+NDI output and ONNX stems require separate SDK/runtime setup; not bundled here.

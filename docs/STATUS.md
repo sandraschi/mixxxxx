@@ -58,7 +58,7 @@ was caused by this fork and is now fixed. See ASSESSMENT section 7.2.
 | **NDI network output** | **Partial MVP** | `NdiOutput` stub without SDK; live send needs `-DNDI=ON` + SDK; not verified on receiver yet |
 | Hardware decode (D3D11VA / CUDA) | **Dead** | no `get_format` callback, silently software |
 | Video thumbnails in library | Absent | `VideoThumbnail` exists, not wired to CoverArt DAO |
-| Stem separation | Absent from binary | `ONNX_RUNTIME=OFF` in this build |
+| Stem separation | Compile OK (`ONNX_RUNTIME=ON`); not in default binary | Model + CO wiring still open — `docs/STEMS-ONNX-PROBE.md` |
 
 Video output panel is hidden on a fresh **LateNight** profile (`show_video_output=0`).
 **Mixxxxx Video** skin defaults both preview and output to on.
@@ -129,6 +129,9 @@ relink fine regardless, so tests can be run without closing the app.
 | `docs/TODO.md` | Current | ordered backlog |
 | `docs/NDI.md` | Current | NDI MVP (stub + SDK path); not verified on receiver |
 | `docs/vj-integration-spout-osc.md` | Current | Spout + VJ OSC spec (TODO 28, after NDI) |
+| `docs/SERATO-IMPORT.md` | Current | Serato `.crate` CLI/GUI paths (Dani workflow) |
+| `docs/STEMS-ONNX-PROBE.md` | Current | TODO 31 ONNX compile probe |
+| `docs/INSTALLER.md` | Current | branded NSIS/WIX pipeline (`just build-installer`) |
 | `docs/SKINS.md` | Current | community install; MixxxxxVideo + Daylight |
 | `docs/IDEAS.md` | Current | beat FX → fallback → NDI → VJ order |
 | `docs/PROGRESS-20260726.md` | Current | session log |

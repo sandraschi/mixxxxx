@@ -1911,6 +1911,13 @@ install(
     .
 )
 
+if(MIXXXXX_BRANDING AND WIN32)
+  install(
+    FILES "${CMAKE_CURRENT_SOURCE_DIR}/packaging/mixxxxx/mixxxxx-osc.cmd"
+    DESTINATION "${MIXXX_INSTALL_BINDIR}"
+  )
+endif()
+
 # Skins
 install(
   DIRECTORY
@@ -2160,6 +2167,7 @@ if(BUILD_TESTING)
     src/test/controlobjecttest.cpp
     src/test/controlcli_test.cpp
     src/test/exportcli_test.cpp
+    src/test/importcli_test.cpp
     src/test/oscserver_test.cpp
     src/test/controlobjectaliastest.cpp
     src/test/controlobjectscripttest.cpp
@@ -3685,40 +3693,17 @@ if(FFMPEG)
   target_include_directories(mixxx-lib PUBLIC "${FFMPEG_INCLUDE_DIRS}")
 endif()
 
-# NDI network video output (optional; requires NDI SDK download)
-option(NDI "NDI network video output" OFF)
-set(NDI_SDK_DIR "" CACHE PATH "Root directory of the NDI SDK (Include + Lib/x64)")
+# NDI network video output (optional; GPL-clean dynamic load — see docs/NDI-LICENSING.md)
+option(NDI "NDI network video output" ON)
+option(MIXXXXX_BRANDING "Mixxxxx-branded Windows packages (NSIS primary)" ON)
 
 if(NDI AND FFMPEG)
-  if(NDI_SDK_DIR STREQUAL "" AND DEFINED ENV{NDI_SDK_DIR})
-    set(NDI_SDK_DIR "$ENV{NDI_SDK_DIR}")
-  endif()
-  if(NDI_SDK_DIR STREQUAL "" AND EXISTS "C:/Program Files/NDI/NDI 6 SDK")
-    set(NDI_SDK_DIR "C:/Program Files/NDI/NDI 6 SDK")
-  endif()
-  if(NDI_SDK_DIR STREQUAL "" AND EXISTS "C:/Program Files/NDI/NDI 5 SDK")
-    set(NDI_SDK_DIR "C:/Program Files/NDI/NDI 5 SDK")
-  endif()
-
-  find_path(NDI_INCLUDE_DIR Processing.NDI.Lib.h
-          PATHS "${NDI_SDK_DIR}/Include" "${NDI_SDK_DIR}/include")
-  find_library(NDI_LIBRARY NAMES Processing.NDI.Lib.x64 Processing.NDI.Lib
-          PATHS "${NDI_SDK_DIR}/Lib/x64" "${NDI_SDK_DIR}/lib/x64")
-
-  if(NDI_INCLUDE_DIR AND NDI_LIBRARY)
-    message(STATUS "NDI SDK found: ${NDI_INCLUDE_DIR}")
-    target_compile_definitions(mixxx-lib PUBLIC __MIXXXXX_NDI__)
-    target_include_directories(mixxx-lib PRIVATE "${NDI_INCLUDE_DIR}")
-    target_link_libraries(mixxx-lib PRIVATE "${NDI_LIBRARY}")
-
-    find_file(NDI_RUNTIME_DLL Processing.NDI.Lib.x64.dll
-            PATHS "${NDI_SDK_DIR}/Bin/x64" "${NDI_SDK_DIR}/bin/x64")
-    if(NDI_RUNTIME_DLL)
-      install(FILES "${NDI_RUNTIME_DLL}" DESTINATION ${MIXXX_INSTALL_BINDIR})
-    endif()
-  else()
-    message(WARNING "NDI=ON but SDK not found. Set NDI_SDK_DIR. Building NdiOutput stub.")
-  endif()
+  message(STATUS "NDI support: MIT headers in lib/ndi/include; runtime loaded at startup")
+  target_compile_definitions(mixxx-lib PUBLIC __MIXXXXX_NDI__)
+  target_include_directories(mixxx-lib PRIVATE "${CMAKE_SOURCE_DIR}/lib/ndi/include")
+  target_sources(mixxx-lib PRIVATE src/video/ndi_runtime.cpp)
+elseif(NDI AND NOT FFMPEG)
+  message(WARNING "NDI=ON requires FFMPEG=ON. NDI output disabled.")
 endif()
 
 # ONNX Runtime for AI stem separation (Windows only)
@@ -4068,19 +4053,51 @@ file(RELATIVE_PATH MIXXX_INSTALL_DOCDIR_RELATIVE_TO_DATADIR "${CMAKE_INSTALL_PRE
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/src/config.h" @ONLY)
 
 # Packaging
-set(CPACK_PACKAGE_NAME "Mixxx")
-set(CPACK_PACKAGE_VENDOR "Mixxx Project")
-set(CPACK_PACKAGE_CONTACT "RJ Skerry-Ryan <rryan@mixxx.org>")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Digital DJ Application")
-set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/packaging/CPackPackageDescription.txt")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "Mixxx")
-set(CPACK_PACKAGE_EXECUTABLES "mixxx;Mixxx")
-set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/res/images/mixxx_install_logo.bmp")
-set(CPACK_PACKAGE_HOMEPAGE_URL "https://www.mixxx.org/")
+if(MIXXXXX_BRANDING)
+  set(CPACK_MIXXXXX_BRANDING ON)
+  set(CPACK_PACKAGE_NAME "Mixxxxx")
+  set(CPACK_PACKAGE_VENDOR "Mixxxxx Fleet")
+  set(CPACK_PACKAGE_CONTACT "https://github.com/sandraschi/mixxxxx")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Video-enabled DJ application (Mixxx 2.5.6 fork)")
+  set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/packaging/mixxxxx/CPackPackageDescription.txt")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "Mixxxxx")
+  set(CPACK_PACKAGE_EXECUTABLES "mixxx;Mixxxxx")
+  set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/sandraschi/mixxxxx")
+  set(CPACK_CREATE_DESKTOP_LINKS "mixxx")
+  set(_mixxxxx_brand_dir "${CMAKE_CURRENT_SOURCE_DIR}/packaging/mixxxxx")
+  if(EXISTS "${_mixxxxx_brand_dir}/ic_mixxxxx.ico")
+    set(CPACK_NSIS_MUI_ICON "${_mixxxxx_brand_dir}/ic_mixxxxx.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${_mixxxxx_brand_dir}/ic_mixxxxx.ico")
+  else()
+    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/res/images/icons/ic_mixxx.ico")
+    set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/res/images/icons/ic_mixxx.ico")
+  endif()
+  if(EXISTS "${_mixxxxx_brand_dir}/mixxxxx_install_logo.bmp")
+    set(CPACK_PACKAGE_ICON "${_mixxxxx_brand_dir}/mixxxxx_install_logo.bmp")
+  else()
+    set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/res/images/mixxx_install_logo.bmp")
+  endif()
+  if(EXISTS "${_mixxxxx_brand_dir}/mixxxxx_install_banner.bmp")
+    set(CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP "${_mixxxxx_brand_dir}/mixxxxx_install_banner.bmp")
+    set(CPACK_NSIS_MUI_UNWELCOMEFINISHPAGE_BITMAP "${_mixxxxx_brand_dir}/mixxxxx_install_banner.bmp")
+  endif()
+else()
+  set(CPACK_PACKAGE_NAME "Mixxx")
+  set(CPACK_PACKAGE_VENDOR "Mixxx Project")
+  set(CPACK_PACKAGE_CONTACT "RJ Skerry-Ryan <rryan@mixxx.org>")
+  set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Digital DJ Application")
+  set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/packaging/CPackPackageDescription.txt")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "Mixxx")
+  set(CPACK_PACKAGE_EXECUTABLES "mixxx;Mixxx")
+  set(CPACK_PACKAGE_HOMEPAGE_URL "https://www.mixxx.org/")
+  set(CPACK_CREATE_DESKTOP_LINKS "mixxx")
+endif()
+if(NOT MIXXXXX_BRANDING)
+  set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/res/images/mixxx_install_logo.bmp")
+endif()
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_STRIP_FILES ON)
-set(CPACK_CREATE_DESKTOP_LINKS "mixxx")
 set(CPACK_MIXXX_VERSION "${MIXXX_VERSION}")
 # Save GIT values just in case they have been set manual via cmake
 set(CPACK_GIT_DESCRIBE "${GIT_DESCRIBE}")
@@ -4171,10 +4188,30 @@ set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/packaging/wix/images/dialog
 set(CPACK_PROJECT_CONFIG_FILE "${CMAKE_SOURCE_DIR}/packaging/CPackConfig.cmake" )
 
 if(WIN32)
+  if(MIXXXXX_BRANDING)
+    set(CPACK_GENERATOR NSIS)
+    set(CPACK_NSIS_DISPLAY_NAME "Mixxxxx")
+    set(CPACK_NSIS_PACKAGE_NAME "Mixxxxx")
+    set(CPACK_NSIS_HELP_LINK "https://github.com/sandraschi/mixxxxx")
+    set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/sandraschi/mixxxxx")
+    set(CPACK_NSIS_CONTACT "Mixxxxx Fleet")
+    set(CPACK_NSIS_MODIFY_PATH OFF)
+    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_INCLUDE_EXTRA "${CMAKE_SOURCE_DIR}/packaging/mixxxxx/nsis-extra.nsh")
+    set(CPACK_NSIS_INSTALLED_ICON_NAME "mixxx.exe")
+    if(EXISTS "${CMAKE_SOURCE_DIR}/packaging/mixxxxx/ic_mixxxxx.ico")
+      set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/packaging/mixxxxx/ic_mixxxxx.ico")
+      set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/packaging/mixxxxx/ic_mixxxxx.ico")
+    else()
+      set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/res/images/icons/ic_mixxx.ico")
+      set(CPACK_NSIS_MUI_UNIICON "${CMAKE_SOURCE_DIR}/res/images/icons/ic_mixxx.ico")
+    endif()
+    configure_file(packaging/wix/LICENSE.rtf.in packaging/wix/LICENSE.rtf @ONLY)
+  else()
     # override not working default NSIS
     set(CPACK_GENERATOR WIX)
-    # uses CMAKE_PROJECT_VERSION
     configure_file(packaging/wix/LICENSE.rtf.in packaging/wix/LICENSE.rtf @ONLY)
+  endif()
 endif()
 
 include(CPack)
