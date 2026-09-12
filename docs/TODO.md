@@ -49,6 +49,13 @@ Est: one evening with real tracks.
 
 ---
 
+## P1: Dani — beatgrid + stems (stakeholder plan)
+
+Full plan: **`docs/PLAN-DANI-BEATGRID-STEMS.md`**. Beatgridding: ship G1 checklist/docs.
+Stems: honest Help (G2); realtime ONNX only under G3 with her hardware testing.
+
+---
+
 ## P1: upstream Mixxx 2.6
 
 ### 34. Reintegrate upstream `2.6` beta (stems, cues, controllers)
