@@ -297,6 +297,11 @@ void OscServer::setupSubscriptions() {
             "pfl",
             "track_samples",
             "track_samplerate",
+            // mixxxxx fork (ControlProxy skipped if CO missing in vanilla builds)
+            "video_enabled",
+            "video_fullscreen",
+            "video_fallback",
+            "phase",
     };
 
     for (int deck = 1; deck <= 4; ++deck) {

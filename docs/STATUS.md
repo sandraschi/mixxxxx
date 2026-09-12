@@ -112,7 +112,7 @@ Still TODO: cut, RGB split, feedback trail (IDEAS.md full set).
 | ControlObjects for all features | Works | inspectable via Developer Tools |
 | MIDI / HID mapping | Works | upstream, untouched |
 | Hercules DJ Console Mk1/Mk2 (~2003) | Works (upstream maps) | `Hercules DJ Console Mk1.hid.xml`, Mk2 MIDI/HID; shelf plug-in test pending (TODO 32) |
-| **OSC server** | **Works** (MVP) | UDP 11119 in, 11118 out; `/mixxxxx/ping` heartbeat |
+| **OSC server** | **Works** (MVP) | UDP 11119 in, 11118 out; `/mixxxxx/ping`; outbound includes fork `video_*` + `phase` |
 | mixx-dj-mcp OSC bridge | **Works when Mixxx running** | probes `/mixxxxx/ping`, expects `/mixxxxx/pong` |
 
 ## Known build note
