@@ -49,6 +49,13 @@ Est: one evening with real tracks.
 
 ---
 
+## P1: docs — upstream + Resolume fleet
+
+- **`docs/UPSTREAM-PHILOSOPHY.md`** — why mixxxxx vs mixxxdj pace (2026-09-12).
+- **`docs/RESOLUME-FLEET-CROSSCONNECT.md`** — resolume-mcp + osc-mcp; fix mixx-dj-mcp OSC (R1–R5).
+
+---
+
 ## P1: Dani — beatgrid + stems (stakeholder plan)
 
 Full plan: **`docs/PLAN-DANI-BEATGRID-STEMS.md`**. Beatgridding: ship G1 checklist/docs.

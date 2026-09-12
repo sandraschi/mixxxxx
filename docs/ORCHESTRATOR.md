@@ -79,14 +79,17 @@ feed, then add the source in Resolume or OBS.
 | mixxxxx OSC | MVP (11118/11119) |
 | mixxxxx NDI sender | Partial MVP — see [`NDI.md`](NDI.md) |
 | mixx-dj-mcp → mixxxxx | Works |
-| mixx-dj-mcp → Resolume OSC (`resolume_sync`) | Partial — see mixx-dj-mcp `docs/AUDIO_REACTIVE_VISUALS.md` |
-| resolume-mcp | Separate repo; needs licensed or demo Resolume |
+| mixx-dj-mcp → Resolume OSC (`resolume_sync`) | Partial — align via [`RESOLUME-FLEET-CROSSCONNECT.md`](RESOLUME-FLEET-CROSSCONNECT.md) |
+| resolume-mcp | Port **11176**; clip/layer/effect OSC — preferred Resolume authority |
+| osc-mcp `resolume_manager` | Fleet generic OSC; see `resolume-expert` skill |
 | mixxxxx → Resolume **video** via NDI | Planned rig; verify with your Resolume + NDI Tools version |
 
 ---
 
 ## Related docs
 
+- [`UPSTREAM-PHILOSOPHY.md`](UPSTREAM-PHILOSOPHY.md) — why fork vs upstream pace
+- [`RESOLUME-FLEET-CROSSCONNECT.md`](RESOLUME-FLEET-CROSSCONNECT.md) — resolume-mcp + osc-mcp plan
 - [`NDI-TARGETS.md`](NDI-TARGETS.md) — OBS, Resolume, vMix, and other NDI consumers
 - [`NDI.md`](NDI.md) — setup, consumers, troubleshooting
 - [`NDI-LICENSING.md`](NDI-LICENSING.md) — GPL-safe dynamic load (for contributors)
