@@ -54,10 +54,10 @@ Est: one evening with real tracks.
 ### 34. Reintegrate upstream `2.6` beta (stems, cues, controllers)
 Fork base is **2.5.6** on branch `video`. Upstream **2.6 beta** (not released stable)
 adds per-stem volume/effects, hotcue reorder, and controller UX — **no video mixing**
-(issue #8034 still open). Periodic merge from `mixxxdj/mixxx` `2.6` branch; expect
-conflicts under `src/video/`, export, and engine. After each merge: `mixxx-test.exe`
-(video + `OscServerTest` filters) and a quick gig smoke on MixxxxxVideo skin.
-Est: 1–2 days per merge pass, plus fix regressions.
+(issue #8034 still open). Playbook: **`docs/UPSTREAM-2.6-MERGE.md`**. Periodic merge
+from `mixxxdj/mixxx` `2.6` branch; expect conflicts under `src/video/`, export, and
+engine. After each merge: `mixxx-test.exe` (video + `OscServerTest` filters) and a
+quick gig smoke on MixxxxxVideo skin. Est: 1–2 days per merge pass, plus regressions.
 
 ---
 
