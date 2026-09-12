@@ -67,11 +67,17 @@ Help tab in mixx-dj-mcp already describes the rig (`/help` → Resolume). Orches
 
 ### R1 — Stop sending fake OSC (mixx-dj-mcp)
 
-- [ ] **R1.1** Audit `tools/daw.py` `resolume_sync`, `visuals_connect`, `visuals_trigger` against
-  `resolume-mcp/src/resolume_mcp/utils/resolume_osc.py` and osc-mcp `resolume-expert` SKILL.  
-- [ ] **R1.2** Replace direct `python-osc` with HTTP to resolume-mcp (`/api/v1/tools/call` pattern)
-  or import shared address constants.  
-- [ ] **R1.3** Mark STATUS: Works only after Resolume demo confirms BPM + opacity move.
+- [x] **R1.1** `resolume_client.py` + `mixx_daw` use composition layer/effect paths (2026-09-12).  
+- [x] **R1.2** resolume-mcp OSC client sends to port **7000** (incoming), not 7001.  
+- [ ] **R1.3** Mark Works only after licensed or demo Resolume confirms BPM + opacity move.
+
+### Demo vs club
+
+Resolume’s **free demo** is fully featured but outputs a **logo watermark** and a periodic
+**robotic voice** (“Resolume Avenue/Arena”) on the program output — unusable on a club PA if
+Resolume carries audio. Official: [Resolume support](https://resolume.com/support/en/avenue-arena-difference).
+**Registration** (license) removes both. For gigs: license Avenue (~€299) or route **video only**
+(NDI in, no Resolume audio to FOH) and accept watermark until licensed.
 
 ### R2 — Deck → Resolume sync loop (mixx-dj-mcp)
 
