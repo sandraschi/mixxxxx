@@ -1,4 +1,5 @@
 #include "stem_separator.h"
+#include "moc_stem_separator.cpp"
 
 #include <QDir>
 #include <QFile>

@@ -8,6 +8,52 @@
 #include <QDebug>
 #include <QRegularExpression>
 
+namespace {
+
+// FFmpeg's hwaccel contract: when hw_device_ctx is set, the decoder still
+// offers a list of candidate output pixel formats (hardware + software) via
+// get_format and picks the FIRST one if this callback isn't set - which is
+// always a software format, since hardware formats are listed after it. So
+// hw_device_ctx alone silently does nothing; without this callback the
+// decoder falls back to software decode with no error, no warning, nothing
+// - exactly the "hw_device_ctx created successfully, frames decoded in
+// software anyway" symptom this was shipping with.
+//
+// Reads the wanted format from the AVHWDeviceContext already attached to
+// avctx->hw_device_ctx rather than needing any decoder-instance state here,
+// so this can stay a plain function instead of needing to thread `this`
+// through libavcodec's C callback.
+enum AVPixelFormat pickHwFormat(AVCodecContext* avctx, const enum AVPixelFormat* pixFmts) {
+    if (avctx->hw_device_ctx) {
+        const auto* hwCtx = reinterpret_cast<const AVHWDeviceContext*>(avctx->hw_device_ctx->data);
+        AVPixelFormat wanted = AV_PIX_FMT_NONE;
+        switch (hwCtx->type) {
+        case AV_HWDEVICE_TYPE_D3D11VA:
+            wanted = AV_PIX_FMT_D3D11;
+            break;
+        case AV_HWDEVICE_TYPE_CUDA:
+            wanted = AV_PIX_FMT_CUDA;
+            break;
+        default:
+            break;
+        }
+        if (wanted != AV_PIX_FMT_NONE) {
+            for (const enum AVPixelFormat* p = pixFmts; *p != AV_PIX_FMT_NONE; ++p) {
+                if (*p == wanted) {
+                    qDebug().nospace() << "VideoDecoder: get_format selected hw pixel format "
+                                        << av_get_pix_fmt_name(wanted);
+                    return *p;
+                }
+            }
+        }
+        qWarning() << "VideoDecoder: decoder did not offer the expected hw pixel format for"
+                   << av_hwdevice_get_type_name(hwCtx->type) << "- falling back to software";
+    }
+    return pixFmts[0];
+}
+
+} // namespace
+
 void VideoDecoder::setGroup(const QString& group) {
     m_group = group;
 
@@ -60,13 +106,18 @@ void VideoDecoder::openFile(const QString& filePath) {
     avcodec_parameters_to_context(m_codecCtx,
         m_formatCtx->streams[m_videoStreamIndex]->codecpar);
 
+    // Must run BEFORE avcodec_open2(): hw_device_ctx and get_format are part
+    // of the codec's open-time configuration. Setting them after open is too
+    // late for most hwaccel codecs to initialize their hardware state - this
+    // used to run after avcodec_open2() below, which alone may have been
+    // enough to keep hw decode from ever engaging even once get_format was
+    // added.
+    initHardwareDecoder();
+
     if (avcodec_open2(m_codecCtx, m_codec, nullptr) < 0) {
         emit openFailed("Cannot open codec");
         return;
     }
-
-    // Try D3D11VA hardware acceleration (Windows)
-    initHardwareDecoder();
 
     m_width = m_codecCtx->width;
     m_height = m_codecCtx->height;
@@ -198,6 +249,7 @@ bool VideoDecoder::initHardwareDecoder() {
         if (av_hwdevice_ctx_create(&m_hwDeviceCtx, types[i], nullptr, nullptr, 0) == 0) {
             m_hwType = types[i];
             m_codecCtx->hw_device_ctx = av_buffer_ref(m_hwDeviceCtx);
+            m_codecCtx->get_format = pickHwFormat;
             m_hwEnabled = true;
             qDebug().nospace() << "VideoDecoder: HW decode enabled (" << av_hwdevice_get_type_name(m_hwType) << ")";
             return true;

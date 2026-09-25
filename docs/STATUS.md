@@ -1,6 +1,6 @@
 # Mixxxxx Status
 
-Last verified against source: 2026-07-27, after album-art Ken Burns fallback (TODO 26 step 4).
+Last verified against source: 2026-09-26, after the get_format/hw-decode-ordering fix. Prior verification: 2026-07-27, after album-art Ken Burns fallback (TODO 26 step 4).
 Base: Mixxx 2.5.6, branch `video`, 26 commits ahead of tag `2.5.6`.
 Build: RelWithDebInfo, Ninja, vcpkg x64-windows-release.
 Latest push: see `git log -1` on `origin/video`.
@@ -56,7 +56,7 @@ was caused by this fork and is now fixed. See ASSESSMENT section 7.2.
 | Pause / resume | **Works** (was UB) | QWaitCondition now holds its mutex |
 | Independent video crossfader | **Absent** | CO was dead and removed; TODO 23 |
 | **NDI network output** | **Partial MVP** | `NdiOutput` stub without SDK; live send needs `-DNDI=ON` + SDK; not verified on receiver yet |
-| Hardware decode (D3D11VA / CUDA) | **Dead** | no `get_format` callback, silently software |
+| Hardware decode (D3D11VA / CUDA) | **Fixed, pending runtime verification** | `get_format` callback added (`pickHwFormat` in videodecoder.cpp), reads the attached `AVHWDeviceContext`'s type and selects the matching hw pixel format; decoder was silently discarding it before. Also fixed a second bug in the same path: `initHardwareDecoder()` ran AFTER `avcodec_open2()`, but FFmpeg's hwaccel contract requires `hw_device_ctx`/`get_format` to be set before open - reordered. Builds clean (RelWithDebInfo, full ninja rebuild), all 28 existing video tests still pass. Not yet verified against real GPU-decoded playback (would need `--set-control` or debug-log inspection while playing a real file) - do that before marking Works |
 | Video thumbnails in library | Absent | `VideoThumbnail` exists, not wired to CoverArt DAO |
 | Stem separation | Compile OK (`ONNX_RUNTIME=ON`); not in default binary | Model + CO wiring still open — `docs/STEMS-ONNX-PROBE.md` |
 
