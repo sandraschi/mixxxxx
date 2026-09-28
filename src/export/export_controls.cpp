@@ -1,5 +1,5 @@
 #include "export/export_controls.h"
-#include "export/rekordboxexporter.h"
+#include "export/engineexporter.h"
 #include "export/seratoexporter.h"
 #include "export/virtualdjexporter.h"
 
@@ -42,19 +42,19 @@ class ExportController : public QObject {
             QStandardPaths::AppLocalDataLocation);
 
         // ── Deck export triggers ──
-        m_deck1.reset(new ControlPushButton(ConfigKey("[Channel1]", "export_rekordbox")));
-        m_deck2.reset(new ControlPushButton(ConfigKey("[Channel2]", "export_rekordbox")));
-        m_deck3.reset(new ControlPushButton(ConfigKey("[Channel3]", "export_rekordbox")));
-        m_deck4.reset(new ControlPushButton(ConfigKey("[Channel4]", "export_rekordbox")));
+        m_deck1.reset(new ControlPushButton(ConfigKey("[Channel1]", "export_engine")));
+        m_deck2.reset(new ControlPushButton(ConfigKey("[Channel2]", "export_engine")));
+        m_deck3.reset(new ControlPushButton(ConfigKey("[Channel3]", "export_engine")));
+        m_deck4.reset(new ControlPushButton(ConfigKey("[Channel4]", "export_engine")));
 
         connect(m_deck1.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
-            if (v <= 0) return; triggerRekordboxExport("[Channel1]", settingsPath, defaultExportPath("PIONEER")); });
+            if (v <= 0) return; triggerEngineExport("[Channel1]", settingsPath, defaultExportPath("Engine")); });
         connect(m_deck2.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
-            if (v <= 0) return; triggerRekordboxExport("[Channel2]", settingsPath, defaultExportPath("PIONEER")); });
+            if (v <= 0) return; triggerEngineExport("[Channel2]", settingsPath, defaultExportPath("Engine")); });
         connect(m_deck3.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
-            if (v <= 0) return; triggerRekordboxExport("[Channel3]", settingsPath, defaultExportPath("PIONEER")); });
+            if (v <= 0) return; triggerEngineExport("[Channel3]", settingsPath, defaultExportPath("Engine")); });
         connect(m_deck4.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
-            if (v <= 0) return; triggerRekordboxExport("[Channel4]", settingsPath, defaultExportPath("PIONEER")); });
+            if (v <= 0) return; triggerEngineExport("[Channel4]", settingsPath, defaultExportPath("Engine")); });
 
         // ── Crate export ──
         m_exportCrate.reset(new ControlPushButton(ConfigKey("[Export]", "export_crate")));
@@ -88,9 +88,9 @@ class ExportController : public QObject {
         });
     }
 
-    void triggerRekordboxExport(const QString& group, const QString& settingsPath, const QString& usbPath) {
+    void triggerEngineExport(const QString& group, const QString& settingsPath, const QString& usbPath) {
         // The previous code passed `group` straight through as the trackPath
-        // argument, so RekordboxExporter queried
+        // argument, so EngineExporter queried
         // `WHERE track_locations.location = '[Channel1]'` and per-deck export
         // failed 100% of the time. Resolve the loaded track first.
         if (!m_pPlayerManager) {
@@ -113,8 +113,8 @@ class ExportController : public QObject {
             return;
         }
 
-        auto* ex = new RekordboxExporter(settingsPath, this);
-        connect(ex, &RekordboxExporter::exportComplete, this, [ex](bool, const QString&) { ex->deleteLater(); });
+        auto* ex = new EngineExporter(settingsPath, this);
+        connect(ex, &EngineExporter::exportComplete, this, [ex](bool, const QString&) { ex->deleteLater(); });
         ex->exportTrack(trackPath, usbPath);
     }
 

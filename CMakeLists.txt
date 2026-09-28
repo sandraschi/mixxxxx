@@ -2582,7 +2582,7 @@ if(ENGINEPRIME)
     src/library/export/engineprimeexportjob.cpp
     src/library/export/libraryexporter.cpp
     src/export/export_controls.cpp
-    src/export/rekordboxexporter.cpp
+    src/export/engineexporter.cpp
     src/export/seratoexporter.cpp
     src/export/virtualdjexporter.cpp
     src/util/exportcli.cpp)

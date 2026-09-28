@@ -1,4 +1,4 @@
-#include "export/rekordboxexporter.h"
+#include "export/engineexporter.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -13,7 +13,7 @@
 
 #include "track/cueinfo.h"
 
-#include "moc_rekordboxexporter.cpp"
+#include "moc_engineexporter.cpp"
 
 namespace e = djinterop::engine;
 
@@ -21,8 +21,12 @@ namespace {
 
 constexpr int kMaxHotCues = 8;
 
-const QString kPioneerSubdir = QStringLiteral("PIONEER/rekordbox");
-const QString kDbConnectionName = QStringLiteral("rekordbox_export_mixxxdb");
+// Denon Engine DJ's expected top-level folder name on a USB drive. Was
+// "PIONEER/rekordbox" - a real Pioneer CDJ/DJM would not read this output
+// at all, since libdjinterop writes Engine Library format, not Pioneer's
+// native DeviceSQL/.pdb. See docs/TODO.md item 13.
+const QString kEngineLibrarySubdir = QStringLiteral("Engine Library");
+const QString kDbConnectionName = QStringLiteral("engine_export_mixxxdb");
 
 std::optional<djinterop::musical_key> toDjinteropKey(int mixxxKey) {
     // Map from Mixxx chromatic key id (1-24) to libdjinterop Circle-of-Fifths enum.
@@ -58,22 +62,22 @@ std::optional<djinterop::musical_key> toDjinteropKey(int mixxxKey) {
 
 } // anonymous namespace
 
-RekordboxExporter::RekordboxExporter(const QString& settingsPath, QObject* parent)
+EngineExporter::EngineExporter(const QString& settingsPath, QObject* parent)
     : QObject(parent),
       m_settingsPath(settingsPath) {
 }
 
-bool RekordboxExporter::exportTrack(const QString& trackPath, const QString& usbPath) {
+bool EngineExporter::exportTrack(const QString& trackPath, const QString& usbPath) {
     emit exportProgress(0, 1);
 
-    QDir pioneerDir(usbPath + QStringLiteral("/") + kPioneerSubdir);
-    if (!pioneerDir.exists()) {
-        QDir().mkpath(pioneerDir.absolutePath());
+    QDir engineLibraryDir(usbPath + QStringLiteral("/") + kEngineLibrarySubdir);
+    if (!engineLibraryDir.exists()) {
+        QDir().mkpath(engineLibraryDir.absolutePath());
     }
 
     try {
         auto engDb = e::create_database(
-                pioneerDir.absolutePath().toStdString(),
+                engineLibraryDir.absolutePath().toStdString(),
                 e::latest_schema);
 
         const bool ok = exportTrackToDatabase(trackPath, engDb);
@@ -82,19 +86,19 @@ bool RekordboxExporter::exportTrack(const QString& trackPath, const QString& usb
                    : QStringLiteral("Export failed: %1").arg(trackPath));
         return ok;
     } catch (const std::exception& e) {
-        qWarning() << "RekordboxExport: libdjinterop error:" << e.what();
+        qWarning() << "EngineExport: libdjinterop error:" << e.what();
         emit exportComplete(false,
                 QStringLiteral("Export failed: %1").arg(e.what()));
         return false;
     }
 }
 
-bool RekordboxExporter::exportTrackToDatabase(const QString& trackPath, djinterop::database& engDb) {
+bool EngineExporter::exportTrackToDatabase(const QString& trackPath, djinterop::database& engDb) {
     QSqlDatabase db = QSqlDatabase::addDatabase(
             QStringLiteral("QSQLITE"), kDbConnectionName);
     db.setDatabaseName(m_settingsPath + QStringLiteral("/mixxxdb.sqlite"));
     if (!db.open()) {
-        qWarning() << "RekordboxExport: Failed to open Mixxx database at"
+        qWarning() << "EngineExport: Failed to open Mixxx database at"
                     << m_settingsPath;
         return false;
     }
@@ -111,7 +115,7 @@ bool RekordboxExporter::exportTrackToDatabase(const QString& trackPath, djintero
             "WHERE track_locations.location = :path"));
     trackQuery.bindValue(QStringLiteral(":path"), trackPath);
     if (!trackQuery.exec() || !trackQuery.next()) {
-        qWarning() << "RekordboxExport: Track not found:" << trackPath;
+        qWarning() << "EngineExport: Track not found:" << trackPath;
         db.close();
         QSqlDatabase::removeDatabase(kDbConnectionName);
         return false;
@@ -229,22 +233,22 @@ bool RekordboxExporter::exportTrackToDatabase(const QString& trackPath, djintero
 
         engDb.create_track(snapshot);
 
-        qInfo().noquote() << QStringLiteral("RekordboxExport: Exported %1 - %2")
+        qInfo().noquote() << QStringLiteral("EngineExport: Exported %1 - %2")
                                      .arg(artist, title);
         return true;
 
     } catch (const std::exception& e) {
-        qWarning() << "RekordboxExport: libdjinterop error:" << e.what();
+        qWarning() << "EngineExport: libdjinterop error:" << e.what();
         return false;
     }
 }
 
-bool RekordboxExporter::exportCrate(const QString& crateName, const QString& usbPath) {
+bool EngineExporter::exportCrate(const QString& crateName, const QString& usbPath) {
     QSqlDatabase db = QSqlDatabase::addDatabase(
             QStringLiteral("QSQLITE"), kDbConnectionName);
     db.setDatabaseName(m_settingsPath + QStringLiteral("/mixxxdb.sqlite"));
     if (!db.open()) {
-        qWarning() << "RekordboxExport: Failed to open Mixxx database";
+        qWarning() << "EngineExport: Failed to open Mixxx database";
         emit exportComplete(false, QStringLiteral("Cannot open Mixxx database"));
         return false;
     }
@@ -285,9 +289,9 @@ bool RekordboxExporter::exportCrate(const QString& crateName, const QString& usb
         return false;
     }
 
-    QDir pioneerDir(usbPath + QStringLiteral("/") + kPioneerSubdir);
-    if (!pioneerDir.exists()) {
-        QDir().mkpath(pioneerDir.absolutePath());
+    QDir engineLibraryDir(usbPath + QStringLiteral("/") + kEngineLibrarySubdir);
+    if (!engineLibraryDir.exists()) {
+        QDir().mkpath(engineLibraryDir.absolutePath());
     }
 
     // Open the engine database ONCE for the whole crate, not once per track
@@ -295,7 +299,7 @@ bool RekordboxExporter::exportCrate(const QString& crateName, const QString& usb
     // for every track.
     try {
         auto engDb = e::create_database(
-                pioneerDir.absolutePath().toStdString(),
+                engineLibraryDir.absolutePath().toStdString(),
                 e::latest_schema);
 
         int total = trackPaths.size();
@@ -305,7 +309,7 @@ bool RekordboxExporter::exportCrate(const QString& crateName, const QString& usb
             if (!exportTrackToDatabase(trackPaths[i], engDb)) {
                 ++failed;
                 qWarning().noquote()
-                        << QStringLiteral("RekordboxExport: Failed on %1")
+                        << QStringLiteral("EngineExport: Failed on %1")
                                    .arg(trackPaths[i]);
             }
         }
@@ -317,7 +321,7 @@ bool RekordboxExporter::exportCrate(const QString& crateName, const QString& usb
                         .arg(crateName));
         return true;
     } catch (const std::exception& e) {
-        qWarning() << "RekordboxExport: libdjinterop error opening engine database:" << e.what();
+        qWarning() << "EngineExport: libdjinterop error opening engine database:" << e.what();
         emit exportComplete(false,
                 QStringLiteral("Cannot open/create engine database: %1").arg(e.what()));
         return false;

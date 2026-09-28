@@ -40,7 +40,7 @@ Output: `build\mixxx.exe` (~9.7 MB).
 
 ### Sprint 1 (v3)
 - **Phase indicator**: `[Channel{N}],phase` CO (0-360°), QPainter arc ring widget with green→yellow→orange→red gradient, `<PhaseIndicator>` skin element in LateNight
-- **Rekordbox export**: `RekordboxExporter` reads Mixxx SQLite, writes Pioneer .pdb via libdjinterop; `[Export],rekordbox_usb_path`, `[Export],export_crate`, `[Channel{N}],export_rekordbox` COs
+- **Engine DJ export**: `EngineExporter` reads Mixxx SQLite, writes Denon Engine Library format via libdjinterop (not Pioneer .pdb — renamed from "Rekordbox export" 2026-09-28, TODO 13); `[Export],export_crate` (CLI only, see `--export-crate`), `[Channel{N}],export_engine` COs
 
 ### NDI® network video (optional)
 

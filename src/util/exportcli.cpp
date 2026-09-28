@@ -3,7 +3,7 @@
 #include <QDir>
 #include <QtDebug>
 
-#include "export/rekordboxexporter.h"
+#include "export/engineexporter.h"
 #include "export/seratoexporter.h"
 #include "export/virtualdjexporter.h"
 
@@ -73,7 +73,7 @@ bool ExportCli::executeExportCrate(
     bool success = false;
     switch (format) {
     case ExportFormat::Engine: {
-        RekordboxExporter exporter(normalizedSettingsPath);
+        EngineExporter exporter(normalizedSettingsPath);
         success = exporter.exportCrate(crateName, normalizedExportPath);
         break;
     }

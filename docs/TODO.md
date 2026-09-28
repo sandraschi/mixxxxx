@@ -110,13 +110,10 @@ scriptable, and is testable without a GUI. A preferences dialog can come later i
 anyone wants it interactively.
 Est: folded into item 24.
 
-### 13. Rename the Rekordbox exporter to what it is
-Assessment 3.10. libdjinterop writes Engine Library, not Pioneer DeviceSQL. Rename
-`RekordboxExporter` to `EngineExporter`, change the target directory from
-`PIONEER/rekordbox` to `Engine Library/`, update COs and docs. The feature becomes
-correct and genuinely useful instead of silently producing a USB stick no CDJ will
-read. Free Engine export is not widely available.
-Est: 2 hours plus doc updates.
+### 13. Rename the Rekordbox exporter to what it is — DONE (2026-09-28)
+`RekordboxExporter` → `EngineExporter`, `export_rekordbox` CO → `export_engine`,
+target directory `PIONEER/rekordbox` → `Engine Library/`. Companion mixx-dj-mcp
+updated to match (its OSC bridge referenced the old CO/address by name).
 
 ### 15. Do not recreate the database per track — DONE (2026-09-28)
 `exportCrate` now opens the engine database once, loops `exportTrackToDatabase()`

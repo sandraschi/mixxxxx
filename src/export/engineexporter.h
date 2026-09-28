@@ -6,10 +6,13 @@ namespace djinterop {
 class database;
 }
 
-class RekordboxExporter : public QObject {
+// Writes Denon Engine DJ library format (via libdjinterop), NOT Pioneer's
+// native DeviceSQL/.pdb format despite the class's old name (RekordboxExporter).
+// See docs/TODO.md item 13.
+class EngineExporter : public QObject {
     Q_OBJECT
   public:
-    explicit RekordboxExporter(const QString& settingsPath, QObject* parent = nullptr);
+    explicit EngineExporter(const QString& settingsPath, QObject* parent = nullptr);
 
     bool exportTrack(const QString& trackPath, const QString& usbPath);
     bool exportCrate(const QString& crateName, const QString& usbPath);
