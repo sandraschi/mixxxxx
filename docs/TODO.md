@@ -118,17 +118,16 @@ correct and genuinely useful instead of silently producing a USB stick no CDJ wi
 read. Free Engine export is not widely available.
 Est: 2 hours plus doc updates.
 
-### 15. Do not recreate the database per track
-Assessment 3.12. `exportCrate` loops `exportTrack`, and `exportTrack` calls
-`create_database` each time. Open once, loop `create_track`.
-Est: 1 hour.
+### 15. Do not recreate the database per track — DONE (2026-09-28)
+`exportCrate` now opens the engine database once, loops `exportTrackToDatabase()`
+(new private helper) which reuses the handle. See STATUS.md.
 
-### 16. Make the export destination explicit
-Assessment 3.13. `defaultExportPath()` picks the first ready non-NTFS volume under
-128 GB, which can select an SD card, a mounted ISO, or a FAT32 EFI partition, then
-`mkpath`s into it. Replace with an explicit path, ideally the same CLI flag as
-item 24.
-Est: 1 hour.
+### 16. Make the export destination explicit — DONE (2026-09-28)
+Removed the risky volume-scanning heuristic entirely; GUI/OSC/MIDI-triggered
+exports always use the safe Music-folder fallback now. CLI `--export-path`
+(item 24) already gives full explicit control for scripted exports. A real
+path-picker dialog for the GUI trigger would be a further improvement, not
+required to close the safety hole.
 
 ### 17. Write `exporter_test.cpp`
 Seed a temp SQLite with the Mixxx schema, export one track, assert track count and

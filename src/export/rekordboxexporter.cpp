@@ -66,13 +66,36 @@ RekordboxExporter::RekordboxExporter(const QString& settingsPath, QObject* paren
 bool RekordboxExporter::exportTrack(const QString& trackPath, const QString& usbPath) {
     emit exportProgress(0, 1);
 
+    QDir pioneerDir(usbPath + QStringLiteral("/") + kPioneerSubdir);
+    if (!pioneerDir.exists()) {
+        QDir().mkpath(pioneerDir.absolutePath());
+    }
+
+    try {
+        auto engDb = e::create_database(
+                pioneerDir.absolutePath().toStdString(),
+                e::latest_schema);
+
+        const bool ok = exportTrackToDatabase(trackPath, engDb);
+        emit exportComplete(ok,
+                ok ? QStringLiteral("Exported: %1").arg(trackPath)
+                   : QStringLiteral("Export failed: %1").arg(trackPath));
+        return ok;
+    } catch (const std::exception& e) {
+        qWarning() << "RekordboxExport: libdjinterop error:" << e.what();
+        emit exportComplete(false,
+                QStringLiteral("Export failed: %1").arg(e.what()));
+        return false;
+    }
+}
+
+bool RekordboxExporter::exportTrackToDatabase(const QString& trackPath, djinterop::database& engDb) {
     QSqlDatabase db = QSqlDatabase::addDatabase(
             QStringLiteral("QSQLITE"), kDbConnectionName);
     db.setDatabaseName(m_settingsPath + QStringLiteral("/mixxxdb.sqlite"));
     if (!db.open()) {
         qWarning() << "RekordboxExport: Failed to open Mixxx database at"
                     << m_settingsPath;
-        emit exportComplete(false, QStringLiteral("Cannot open Mixxx database"));
         return false;
     }
 
@@ -91,7 +114,6 @@ bool RekordboxExporter::exportTrack(const QString& trackPath, const QString& usb
         qWarning() << "RekordboxExport: Track not found:" << trackPath;
         db.close();
         QSqlDatabase::removeDatabase(kDbConnectionName);
-        emit exportComplete(false, QStringLiteral("Track not found in library"));
         return false;
     }
 
@@ -141,16 +163,7 @@ bool RekordboxExporter::exportTrack(const QString& trackPath, const QString& usb
     db.close();
     QSqlDatabase::removeDatabase(kDbConnectionName);
 
-    QDir pioneerDir(usbPath + QStringLiteral("/") + kPioneerSubdir);
-    if (!pioneerDir.exists()) {
-        QDir().mkpath(pioneerDir.absolutePath());
-    }
-
     try {
-        auto engDb = e::create_database(
-                pioneerDir.absolutePath().toStdString(),
-                e::latest_schema);
-
         auto snapshot = djinterop::track_snapshot{};
         snapshot.artist = artist.toStdString();
         snapshot.title = title.toStdString();
@@ -218,14 +231,10 @@ bool RekordboxExporter::exportTrack(const QString& trackPath, const QString& usb
 
         qInfo().noquote() << QStringLiteral("RekordboxExport: Exported %1 - %2")
                                      .arg(artist, title);
-        emit exportComplete(true,
-                QStringLiteral("Exported: %1 - %2").arg(artist, title));
         return true;
 
     } catch (const std::exception& e) {
         qWarning() << "RekordboxExport: libdjinterop error:" << e.what();
-        emit exportComplete(false,
-                QStringLiteral("Export failed: %1").arg(e.what()));
         return false;
     }
 }
@@ -276,19 +285,41 @@ bool RekordboxExporter::exportCrate(const QString& crateName, const QString& usb
         return false;
     }
 
-    int total = trackPaths.size();
-    for (int i = 0; i < total; ++i) {
-        emit exportProgress(i + 1, total);
-        if (!exportTrack(trackPaths[i], usbPath)) {
-            qWarning().noquote()
-                    << QStringLiteral("RekordboxExport: Failed on %1")
-                               .arg(trackPaths[i]);
-        }
+    QDir pioneerDir(usbPath + QStringLiteral("/") + kPioneerSubdir);
+    if (!pioneerDir.exists()) {
+        QDir().mkpath(pioneerDir.absolutePath());
     }
 
-    emit exportComplete(true,
-            QStringLiteral("Exported %1 tracks from crate '%2'")
-                    .arg(total)
-                    .arg(crateName));
-    return true;
+    // Open the engine database ONCE for the whole crate, not once per track
+    // (docs/TODO.md item 15) - create_track() below reuses this same handle
+    // for every track.
+    try {
+        auto engDb = e::create_database(
+                pioneerDir.absolutePath().toStdString(),
+                e::latest_schema);
+
+        int total = trackPaths.size();
+        int failed = 0;
+        for (int i = 0; i < total; ++i) {
+            emit exportProgress(i + 1, total);
+            if (!exportTrackToDatabase(trackPaths[i], engDb)) {
+                ++failed;
+                qWarning().noquote()
+                        << QStringLiteral("RekordboxExport: Failed on %1")
+                                   .arg(trackPaths[i]);
+            }
+        }
+
+        emit exportComplete(true,
+                QStringLiteral("Exported %1/%2 tracks from crate '%3'")
+                        .arg(total - failed)
+                        .arg(total)
+                        .arg(crateName));
+        return true;
+    } catch (const std::exception& e) {
+        qWarning() << "RekordboxExport: libdjinterop error opening engine database:" << e.what();
+        emit exportComplete(false,
+                QStringLiteral("Cannot open/create engine database: %1").arg(e.what()));
+        return false;
+    }
 }

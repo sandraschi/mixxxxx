@@ -2,6 +2,10 @@
 #include <QObject>
 #include <QString>
 
+namespace djinterop {
+class database;
+}
+
 class RekordboxExporter : public QObject {
     Q_OBJECT
   public:
@@ -15,5 +19,14 @@ class RekordboxExporter : public QObject {
     void exportComplete(bool success, const QString& message);
 
   private:
+    // Queries the Mixxx library DB for one track and writes it into an
+    // already-open engine database. Split out of exportTrack() so
+    // exportCrate() can open the engine database ONCE and reuse it across
+    // every track in the crate, instead of calling create_database() per
+    // track (docs/TODO.md item 15) - besides being wasteful, repeatedly
+    // creating a database at a path that already has one is not a
+    // supported/tested libdjinterop usage pattern.
+    bool exportTrackToDatabase(const QString& trackPath, djinterop::database& engDb);
+
     QString m_settingsPath;
 };

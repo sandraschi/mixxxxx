@@ -6,7 +6,6 @@
 #include <QStandardPaths>
 #include <QDebug>
 #include <QDir>
-#include <QStorageInfo>
 
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
@@ -14,19 +13,21 @@
 #include "mixer/playermanager.h"
 #include "track/track.h"
 
-// Resolve the best export path per exporter type
+// Resolve the export path for GUI/OSC/MIDI-triggered exports (the trigger
+// COs below carry no path argument, so there's nowhere to take an explicit
+// one from - CLI exports are unaffected, see --export-path/cmdlineargs.cpp,
+// which already requires an explicit path and never calls this function).
+//
+// This used to scan every mounted volume for "removable-looking" media -
+// not NTFS, not the root drive, under 128GB - and write into the first
+// match with zero confirmation (docs/TODO.md item 16). That heuristic could
+// select a mounted ISO, an unrelated USB drive plugged in for something
+// else, or a FAT32 EFI system partition: none of those are excluded by
+// "not NTFS and under 128GB", and QStorageInfo::isRoot() only excludes the
+// Windows system drive, not other mounted system volumes. Until this has a
+// real path-picker UI, always using the same safe, already-implemented
+// fallback is the only option that can't silently pick the wrong disk.
 static QString defaultExportPath(const QString& subdir) {
-    // Prefer removable drives (USB sticks) for physical export
-    for (const QStorageInfo& storage : QStorageInfo::mountedVolumes()) {
-        if (storage.isValid() && !storage.isRoot() &&
-            storage.isReady() && storage.fileSystemType() != "NTFS" &&
-            storage.bytesTotal() < 128LL * 1024 * 1024 * 1024) {
-            QString root = storage.rootPath();
-            QDir(root).mkpath(subdir);
-            return root + subdir;
-        }
-    }
-    // Fallback: user's Music folder
     QString fallback = QStandardPaths::writableLocation(QStandardPaths::MusicLocation)
         + "/MixxxExports/" + subdir;
     QDir().mkpath(fallback);

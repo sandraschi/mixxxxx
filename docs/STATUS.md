@@ -101,9 +101,9 @@ Still TODO: cut, RGB split, feedback trail (IDEAS.md full set).
 | Hot cue export | **Works** (was broken) | uses `CueType::HotCue`, not literal 2 |
 | Serato exporter class | Works as a library | not reachable from a trigger |
 | VirtualDJ exporter class | Works as a library | writes database.xml, Camelot conversion |
-| "Rekordbox" output format | **Mislabeled** | libdjinterop writes Engine, not Pioneer pdb |
-| Export destination selection | Unsafe | heuristic can pick SD card, ISO, EFI partition |
-| Per-track DB recreation in crate loop | Broken | `create_database` per track; TODO 15 |
+| "Rekordbox" output format | **Mislabeled** | libdjinterop writes Engine, not Pioneer pdb; TODO 13 - not done, real cross-repo scope (mixx-dj-mcp's OSC table documents `export_rekordbox`/`/deck/[N]/export_rekordbox`) |
+| Export destination selection | **Fixed** (2026-09-28) | Removed the `QStorageInfo::mountedVolumes()` auto-scan entirely (could silently pick an ISO, an unrelated USB drive, or a FAT32 EFI partition - "not NTFS and under 128GB" excludes none of those). GUI/OSC/MIDI-triggered exports now always use the safe Music-folder fallback; CLI `--export-path` was already unaffected. Traced, clean build - no dedicated test (would need a mounted-volume test double) |
+| Per-track DB recreation in crate loop | **Fixed** (2026-09-28) | `exportCrate` now opens the engine database once via `e::create_database`, loops a new `exportTrackToDatabase()` helper that reuses the open handle via `create_track()`. Crate completion message now reports actual N/M success count instead of unconditionally claiming full success. Traced, clean build - `exporter_test.cpp` (TODO 17, seeded SQLite fixture) not built, separate scoped item |
 
 ## Control surface
 
