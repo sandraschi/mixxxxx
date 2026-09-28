@@ -1,5 +1,6 @@
 #include "video/videomixer.h"
 #include "video/videofxchain.h"
+#include "control/controlobject.h"
 #include "moc_videomixer.cpp"
 
 #include <QPainter>
@@ -9,6 +10,29 @@
 VideoMixer& VideoMixer::instance() {
     static VideoMixer inst;
     return inst;
+}
+
+double effectiveVideoCrossfaderPosition() {
+    // These COs only exist once the "[Master]" VideoWidget has been
+    // constructed (see videowidget.cpp). If it hasn't yet - or this build
+    // predates the video crossfader entirely - getControl() returns nullptr
+    // and this falls back to the audio crossfader, i.e. today's behavior,
+    // rather than crashing or defaulting to center.
+    ControlObject* pLink = ControlObject::getControl(
+            ConfigKey(QStringLiteral("[Mixer]"), QStringLiteral("video_crossfader_link")));
+    const bool linked = pLink ? pLink->get() > 0.0 : true;
+
+    ControlObject* pAudioXfader = ControlObject::getControl(
+            ConfigKey(QStringLiteral("[Mixer]"), QStringLiteral("crossfader")));
+    const double audioXfader = pAudioXfader ? pAudioXfader->get() : 0.0;
+
+    if (linked) {
+        return audioXfader;
+    }
+
+    ControlObject* pVideoXfader = ControlObject::getControl(
+            ConfigKey(QStringLiteral("[Mixer]"), QStringLiteral("video_crossfader")));
+    return pVideoXfader ? pVideoXfader->get() : audioXfader;
 }
 
 void VideoMixer::registerDecoder(int deck, VideoDecoder* decoder) {

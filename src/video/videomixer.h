@@ -42,3 +42,14 @@ class VideoMixer {
     QMutex m_mutex;
     QMap<int, DeckFrame> m_frames;
 };
+
+// Free function, not a VideoMixer member, on purpose: blendFrame() above
+// stays a pure function with zero ControlObject dependency (the existing
+// tests rely on that purity, calling it directly with literal doubles). This
+// helper does the [Mixer],video_crossfader / video_crossfader_link lookups
+// for the two call sites that need the *effective* crossfader position
+// (audio-linked, or the independent one) without making VideoMixer itself
+// own or depend on any ControlObject state. See videowidget.h's comment on
+// why those COs are owned by the "[Master]" VideoWidget instance rather
+// than by VideoMixer's singleton.
+double effectiveVideoCrossfaderPosition();

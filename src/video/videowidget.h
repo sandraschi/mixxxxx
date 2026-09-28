@@ -74,6 +74,18 @@ class VideoWidget : public QWidget {
     std::unique_ptr<ControlPushButton> m_pVideoFallback;
     std::unique_ptr<ControlPushButton> m_pVideoFallbackGenerative;
 
+    // [Mixer]-scoped, not per-channel - only the "[Master]" VideoWidget
+    // instance constructs these (see the constructor), matching how
+    // "[Master]" is already the one privileged instance for output-wide
+    // controls. Deliberately NOT owned by VideoMixer's singleton: that
+    // ownership shape is what caused the previous video_crossfader CO to
+    // dangle across per-test ControlObject teardown (see TODO 23 / STATUS.md
+    // section 7.1) - VideoWidget has a normal, non-singleton lifecycle, so
+    // its unique_ptr-owned COs are destroyed at the same time the CO
+    // registry expects them to be.
+    std::unique_ptr<ControlPotmeter> m_pVideoCrossfader;
+    std::unique_ptr<ControlPushButton> m_pVideoCrossfaderLink;
+
     QImage m_fallbackCover;
     bool m_usingKenBurnsFallback = false;
     bool m_usingGenerativeFallback = false;

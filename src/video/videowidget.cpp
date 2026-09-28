@@ -66,6 +66,20 @@ VideoWidget::VideoWidget(const QString& group, QWidget* parent)
     m_pVideoFallbackGenerative = std::make_unique<ControlPushButton>(
         ConfigKey(group, "video_fallback_generative"), true, 1.0);
 
+    // [Mixer]-scoped controls, not per-channel - only the "[Master]" instance
+    // constructs these, so exactly one owner exists for the whole process.
+    // See the header comment on these members for why this lives here and
+    // not in VideoMixer's singleton (TODO 23 / STATUS.md 7.1).
+    if (group == QLatin1String("[Master]")) {
+        m_pVideoCrossfader = std::make_unique<ControlPotmeter>(
+            ConfigKey(QStringLiteral("[Mixer]"), QStringLiteral("video_crossfader")), -1.0, 1.0, true);
+        // Default true ("linked"): video follows the audio crossfader unless
+        // a video DJ explicitly unlinks it - preserves today's behavior as
+        // the default rather than silently changing it for existing setups.
+        m_pVideoCrossfaderLink = std::make_unique<ControlPushButton>(
+            ConfigKey(QStringLiteral("[Mixer]"), QStringLiteral("video_crossfader_link")), true, 1.0);
+    }
+
     CoverArtCache* pCoverCache = CoverArtCache::instance();
     if (pCoverCache) {
         connect(pCoverCache,
@@ -422,9 +436,10 @@ void VideoWidget::paintEvent(QPaintEvent* event) {
     p.setRenderHint(QPainter::SmoothPixmapTransform);
 
     if (!m_hasVideo || m_currentFrame.isNull()) {
-        // Try to show the blended output from the video mixer
-        ControlObject* co = ControlObject::getControl(ConfigKey("[Mixer]", "crossfader"));
-        double xfader = co ? co->get() : 0.0;
+        // Try to show the blended output from the video mixer. Uses the
+        // independent video crossfader when unlinked, the audio crossfader
+        // otherwise (default) - see effectiveVideoCrossfaderPosition().
+        double xfader = effectiveVideoCrossfaderPosition();
         QImage mixed = VideoMixer::instance().blendFrame(xfader);
         if (!mixed.isNull()) {
             renderImage(p, mixed);

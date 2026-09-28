@@ -3,6 +3,9 @@
 #include <QColor>
 #include <QImage>
 
+#include "control/controlobject.h"
+#include "control/controlpotmeter.h"
+#include "control/controlpushbutton.h"
 #include "test/mixxxtest.h"
 #include "video/videomixer.h"
 
@@ -159,6 +162,53 @@ TEST_F(VideoMixerTest, SaturationCollapsesToGrey) {
     const QRgb px = grey.pixel(1, 1);
     EXPECT_EQ(qRed(px), qGreen(px));
     EXPECT_EQ(qGreen(px), qBlue(px));
+}
+
+// Regression tests for effectiveVideoCrossfaderPosition() (TODO 23 / STATUS.md
+// 7.1). The previous [Mixer],video_crossfader CO was owned by VideoMixer's
+// singleton via unique_ptr and dangled across per-test CO teardown - these
+// tests deliberately construct the COs directly in each test (mirroring how
+// the real "[Master]" VideoWidget instance would own them) rather than via
+// any singleton, so a regression back to singleton ownership would show up
+// as these COs not existing when this function looks them up.
+TEST_F(VideoMixerTest, EffectiveXfader_FallsBackToZeroWithNoControlsAtAll) {
+    // Neither the audio crossfader nor either video CO exists in this test's
+    // clean CO registry - must degrade gracefully, not crash or read garbage.
+    EXPECT_DOUBLE_EQ(effectiveVideoCrossfaderPosition(), 0.0);
+}
+
+TEST_F(VideoMixerTest, EffectiveXfader_DefaultsToAudioCrossfaderWhenLinkControlIsAbsent) {
+    // link CO doesn't exist yet (e.g. a build/skin that predates this
+    // feature) - must default to "linked" behavior, i.e. today's behavior,
+    // not silently read an independent value nobody set.
+    ControlPotmeter audioXfader(ConfigKey("[Mixer]", "crossfader"), -1.0, 1.0, true);
+    audioXfader.set(0.75);
+
+    EXPECT_DOUBLE_EQ(effectiveVideoCrossfaderPosition(), 0.75);
+}
+
+TEST_F(VideoMixerTest, EffectiveXfader_LinkedIgnoresIndependentVideoCrossfaderValue) {
+    ControlPotmeter audioXfader(ConfigKey("[Mixer]", "crossfader"), -1.0, 1.0, true);
+    ControlPushButton link(ConfigKey("[Mixer]", "video_crossfader_link"), true, 1.0);
+    ControlPotmeter videoXfader(ConfigKey("[Mixer]", "video_crossfader"), -1.0, 1.0, true);
+    audioXfader.set(-0.5);
+    link.set(1.0); // linked
+    videoXfader.set(0.9);
+
+    EXPECT_DOUBLE_EQ(effectiveVideoCrossfaderPosition(), -0.5)
+            << "linked must follow the audio crossfader regardless of the independent value";
+}
+
+TEST_F(VideoMixerTest, EffectiveXfader_UnlinkedUsesIndependentVideoCrossfaderValue) {
+    ControlPotmeter audioXfader(ConfigKey("[Mixer]", "crossfader"), -1.0, 1.0, true);
+    ControlPushButton link(ConfigKey("[Mixer]", "video_crossfader_link"), true, 1.0);
+    ControlPotmeter videoXfader(ConfigKey("[Mixer]", "video_crossfader"), -1.0, 1.0, true);
+    audioXfader.set(-0.5);
+    link.set(0.0); // unlinked
+    videoXfader.set(0.9);
+
+    EXPECT_DOUBLE_EQ(effectiveVideoCrossfaderPosition(), 0.9)
+            << "unlinked must use the independent video crossfader, not the audio one";
 }
 
 } // namespace

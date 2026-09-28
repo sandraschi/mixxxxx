@@ -1,7 +1,6 @@
 #include "video/ndioutput.h"
 
 #include "control/controlpushbutton.h"
-#include "control/controlobject.h"
 #include "video/ndi_frame_util.h"
 #include "video/ndi_runtime.h"
 #include "video/videomixer.h"
@@ -293,9 +292,9 @@ void NdiOutput::slotTick() {
 }
 
 void NdiOutput::captureAndQueueFrame() {
-    ControlObject* co = ControlObject::getControl(
-            ConfigKey(QStringLiteral("[Mixer]"), QStringLiteral("crossfader")));
-    const double xfader = co ? co->get() : 0.0;
+    // Uses the independent video crossfader when unlinked, the audio
+    // crossfader otherwise (default) - see effectiveVideoCrossfaderPosition().
+    const double xfader = effectiveVideoCrossfaderPosition();
     const QImage blended = VideoMixer::instance().blendFrame(xfader);
     if (blended.isNull()) {
         return;

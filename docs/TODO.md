@@ -276,8 +276,7 @@ Est: 2 hours (README feature bullets + PRD remain).
 Developer Tools CO browser plus `--dump-controls` / `--set-control` cover video and export; write a short checklist anyway.
 Est: 30 min.
 
-### 23. Independent video crossfader
-The `[Mixer],video_crossfader` CO was dead and has been removed, so video currently
-follows the audio crossfader. An independent one with a link-to-audio toggle
-(default linked) is a real feature a video DJ would want.
-Est: 3 hours.
+### 23. Independent video crossfader — DONE (2026-09-28)
+`[Mixer],video_crossfader` (-1..1) + `[Mixer],video_crossfader_link` (default linked),
+owned by the "[Master]" VideoWidget instance, not VideoMixer's singleton. See
+STATUS.md and videomixer_test.cpp's EffectiveXfader_* tests.
