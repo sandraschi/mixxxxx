@@ -126,10 +126,16 @@ exports always use the safe Music-folder fallback now. CLI `--export-path`
 path-picker dialog for the GUI trigger would be a further improvement, not
 required to close the safety hole.
 
-### 17. Write `exporter_test.cpp`
-Seed a temp SQLite with the Mixxx schema, export one track, assert track count and
-hot cues. Locks in items 11, 14, 15.
-Est: 2 hours.
+### 17. Write `engineexporter_test.cpp` — DONE (2026-09-29)
+9 tests in `src/test/engineexporter_test.cpp`: seeded temp Mixxx SQLite, output read
+back via `djinterop::engine::load_database`. Covers single track, crate, progress,
+unknown/empty crate, uncreatable DB, missing audio, hot cues vs main cue.
+The tests exposed a real bug: the exporter never set `track_snapshot.relative_path`
+(required by libdjinterop), so `create_track()` threw for every track and crate export
+still reported success. Fixed: audio is copied to `<usb>/Mixxx Music`, relative_path
+points at the copy, crate success now requires at least one exported track.
+Open: upstream Mixxx ships its own Engine Prime exporter (`src/library/export/*`);
+this one duplicates it - decide whether to keep or drop.
 
 ---
 
