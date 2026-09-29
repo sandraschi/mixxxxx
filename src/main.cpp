@@ -120,6 +120,7 @@ int runMixxx(MixxxApplication* pApp, const CmdlineArgs& args) {
                     format,
                     args.getExportPath(),
                     args.getSettingsPath(),
+                    pCoreServices->getTrackCollectionManager().get(),
                     &exportError);
             if (!ok) {
                 qCritical().noquote() << exportError;

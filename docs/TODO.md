@@ -127,15 +127,23 @@ path-picker dialog for the GUI trigger would be a further improvement, not
 required to close the safety hole.
 
 ### 17. Write `engineexporter_test.cpp` — DONE (2026-09-29)
-9 tests in `src/test/engineexporter_test.cpp`: seeded temp Mixxx SQLite, output read
-back via `djinterop::engine::load_database`. Covers single track, crate, progress,
-unknown/empty crate, uncreatable DB, missing audio, hot cues vs main cue.
-The tests exposed a real bug: the exporter never set `track_snapshot.relative_path`
-(required by libdjinterop), so `create_track()` threw for every track and crate export
-still reported success. Fixed: audio is copied to `<usb>/Mixxx Music`, relative_path
-points at the copy, crate success now requires at least one exported track.
-Open: upstream Mixxx ships its own Engine Prime exporter (`src/library/export/*`);
-this one duplicates it - decide whether to keep or drop.
+First version (seeded SQLite, own libdjinterop writer) exposed a real bug: the exporter
+never set `track_snapshot.relative_path`, so `create_track()` threw for every track and
+crate export still reported success.
+
+### 18. Retrofit EngineExporter onto upstream's exporter + video — DONE (2026-09-29)
+`EngineExporter` no longer writes libdjinterop data itself. It drives upstream's
+`EnginePrimeExportJob` (real Track objects, bar-aligned beatgrid, waveforms, hot cues,
+crates under a "Mixxx" root crate, cover art, audio copy to `mixxx-export/`), then adds
+what upstream doesn't know: each track's companion video (same base name next to the
+audio, `.mp4/.mkv/.mov/.webm`) is copied beside the exported audio as
+`<id> - <name>.<ext>` and listed in `mixxx-video.json` (merged across exports).
+Fork additions to upstream files, both small: `EnginePrimeExportRequest::explicitTracks`
+and a matching early return in `EnginePrimeExportJob::loadIds` (per-deck export).
+Shared helper `video/companionvideo.h` now used by VideoWidget and the exporter.
+8 tests (`engineexporter_test.cpp`, real `TrackCollectionManager` via `LibraryTest`).
+Not done: loops (upstream TODO too), video export via GUI dialog (upstream's dialog
+still runs the plain job), a reader that uses `mixxx-video.json` on import.
 
 ---
 
