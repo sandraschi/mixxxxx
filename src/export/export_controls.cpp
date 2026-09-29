@@ -10,6 +10,7 @@
 #include "control/controlobject.h"
 #include "control/controlpushbutton.h"
 #include "mixer/basetrackplayer.h"
+#include "library/trackcollectionmanager.h"
 #include "mixer/playermanager.h"
 #include "track/track.h"
 
@@ -36,8 +37,10 @@ static QString defaultExportPath(const QString& subdir) {
 
 class ExportController : public QObject {
   public:
-    explicit ExportController(PlayerManager* pPlayerManager)
-            : m_pPlayerManager(pPlayerManager) {
+    ExportController(PlayerManager* pPlayerManager,
+            TrackCollectionManager* pTrackCollectionManager)
+            : m_pPlayerManager(pPlayerManager),
+              m_pTrackCollectionManager(pTrackCollectionManager) {
         QString settingsPath = QStandardPaths::writableLocation(
             QStandardPaths::AppLocalDataLocation);
 
@@ -47,14 +50,14 @@ class ExportController : public QObject {
         m_deck3.reset(new ControlPushButton(ConfigKey("[Channel3]", "export_engine")));
         m_deck4.reset(new ControlPushButton(ConfigKey("[Channel4]", "export_engine")));
 
-        connect(m_deck1.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
-            if (v <= 0) return; triggerEngineExport("[Channel1]", settingsPath, defaultExportPath("Engine")); });
-        connect(m_deck2.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
-            if (v <= 0) return; triggerEngineExport("[Channel2]", settingsPath, defaultExportPath("Engine")); });
-        connect(m_deck3.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
-            if (v <= 0) return; triggerEngineExport("[Channel3]", settingsPath, defaultExportPath("Engine")); });
-        connect(m_deck4.get(), &ControlPushButton::valueChanged, this, [this, settingsPath](double v) {
-            if (v <= 0) return; triggerEngineExport("[Channel4]", settingsPath, defaultExportPath("Engine")); });
+        connect(m_deck1.get(), &ControlPushButton::valueChanged, this, [this](double v) {
+            if (v <= 0) return; triggerEngineExport("[Channel1]", defaultExportPath("Engine")); });
+        connect(m_deck2.get(), &ControlPushButton::valueChanged, this, [this](double v) {
+            if (v <= 0) return; triggerEngineExport("[Channel2]", defaultExportPath("Engine")); });
+        connect(m_deck3.get(), &ControlPushButton::valueChanged, this, [this](double v) {
+            if (v <= 0) return; triggerEngineExport("[Channel3]", defaultExportPath("Engine")); });
+        connect(m_deck4.get(), &ControlPushButton::valueChanged, this, [this](double v) {
+            if (v <= 0) return; triggerEngineExport("[Channel4]", defaultExportPath("Engine")); });
 
         // ── Crate export ──
         m_exportCrate.reset(new ControlPushButton(ConfigKey("[Export]", "export_crate")));
@@ -88,7 +91,7 @@ class ExportController : public QObject {
         });
     }
 
-    void triggerEngineExport(const QString& group, const QString& settingsPath, const QString& usbPath) {
+    void triggerEngineExport(const QString& group, const QString& usbPath) {
         // The previous code passed `group` straight through as the trackPath
         // argument, so EngineExporter queried
         // `WHERE track_locations.location = '[Channel1]'` and per-deck export
@@ -107,23 +110,22 @@ class ExportController : public QObject {
             qWarning() << "Export: no track loaded on" << group;
             return;
         }
-        const QString trackPath = pTrack->getLocation();
-        if (trackPath.isEmpty()) {
-            qWarning() << "Export: loaded track on" << group << "has no location";
-            return;
-        }
-
-        auto* ex = new EngineExporter(settingsPath, this);
-        connect(ex, &EngineExporter::exportComplete, this, [ex](bool, const QString&) { ex->deleteLater(); });
-        ex->exportTrack(trackPath, usbPath);
+        auto* ex = new EngineExporter(m_pTrackCollectionManager, this);
+        connect(ex, &EngineExporter::exportComplete, this, [ex](bool ok, const QString& message) {
+            qInfo() << "Export:" << (ok ? "done -" : "failed -") << message;
+            ex->deleteLater();
+        });
+        ex->startTrack(pTrack, usbPath);
     }
 
   private:
     PlayerManager* m_pPlayerManager = nullptr;
+    TrackCollectionManager* m_pTrackCollectionManager = nullptr;
     std::unique_ptr<ControlPushButton> m_deck1, m_deck2, m_deck3, m_deck4;
     std::unique_ptr<ControlPushButton> m_exportCrate, m_exportSerato, m_exportVdj;
 };
 
-void registerExportControls(PlayerManager* pPlayerManager) {
-    static ExportController controller(pPlayerManager);
+void registerExportControls(PlayerManager* pPlayerManager,
+        TrackCollectionManager* pTrackCollectionManager) {
+    static ExportController controller(pPlayerManager, pTrackCollectionManager);
 }

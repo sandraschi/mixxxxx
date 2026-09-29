@@ -671,7 +671,7 @@ void CoreServices::initialize(QApplication* pApp) {
     m_pTouchShift = std::make_unique<ControlPushButton>(ConfigKey("[Controls]", "touch_shift"));
 
 #ifdef __ENGINEPRIME__
-    registerExportControls(m_pPlayerManager.get());
+    registerExportControls(m_pPlayerManager.get(), m_pTrackCollectionManager.get());
 #endif
 
     // The UI controls must be created here so that controllers can bind to

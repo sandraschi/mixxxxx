@@ -2,6 +2,8 @@
 
 #include <QString>
 
+class TrackCollectionManager;
+
 namespace mixxx {
 
 enum class ExportFormat {
@@ -22,6 +24,7 @@ class ExportCli {
             ExportFormat format,
             const QString& exportPath,
             const QString& settingsPath,
+            TrackCollectionManager* pTrackCollectionManager,
             QString* pError = nullptr);
 };
 

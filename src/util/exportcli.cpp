@@ -41,6 +41,7 @@ bool ExportCli::executeExportCrate(
         ExportFormat format,
         const QString& exportPath,
         const QString& settingsPath,
+        TrackCollectionManager* pTrackCollectionManager,
         QString* pError) {
     if (crateName.trimmed().isEmpty()) {
         if (pError) {
@@ -73,7 +74,7 @@ bool ExportCli::executeExportCrate(
     bool success = false;
     switch (format) {
     case ExportFormat::Engine: {
-        EngineExporter exporter(normalizedSettingsPath);
+        EngineExporter exporter(pTrackCollectionManager);
         success = exporter.exportCrate(crateName, normalizedExportPath);
         break;
     }
