@@ -4,7 +4,10 @@
 #include <QSet>
 #include <djinterop/djinterop.hpp>
 
+#include <QList>
+
 #include "library/trackset/crate/crateid.h"
+#include "track/trackref.h"
 
 namespace mixxx {
 
@@ -25,6 +28,10 @@ struct EnginePrimeExportRequest {
     /// An empty set here implies that the whole music library is to be
     /// exported.
     QSet<CrateId> crateIdsToExport;
+
+    /// mixxxxx addition (not upstream): if non-empty, export exactly these
+    /// tracks (no crates) instead of the crate/whole-library selection.
+    QList<TrackRef> explicitTracks;
 };
 
 } // namespace mixxx

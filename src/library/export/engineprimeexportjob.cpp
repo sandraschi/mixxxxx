@@ -385,6 +385,13 @@ EnginePrimeExportJob::~EnginePrimeExportJob() = default;
 void EnginePrimeExportJob::loadIds(const QSet<CrateId>& crateIds) {
     DEBUG_ASSERT_QOBJECT_THREAD_AFFINITY(m_pTrackCollectionManager);
 
+    if (!m_pRequest->explicitTracks.isEmpty()) {
+        // mixxxxx addition: export exactly the given tracks, no crates.
+        m_trackRefs = m_pRequest->explicitTracks;
+        m_crateIds.clear();
+        return;
+    }
+
     if (crateIds.isEmpty()) {
         // No explicit crate ids specified, meaning we want to export the
         // whole library, plus all non-empty crates.  Start by building a list

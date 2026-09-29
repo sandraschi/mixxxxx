@@ -21,6 +21,7 @@
 #include "library/coverartcache.h"
 #include "library/coverart.h"
 #include "track/track.h"
+#include "video/companionvideo.h"
 #include "video/videofallback.h"
 #include "video/videogenerative.h"
 #include "video/videopool.h"
@@ -139,20 +140,14 @@ void VideoWidget::findCompanionVideo(const QString& audioPath) {
         }
     }
 
-    QFileInfo fi(audioPath);
-    QString basePath = fi.absolutePath() + "/" + fi.completeBaseName();
-
-    QStringList candidates = {".mp4", ".mkv", ".mov", ".webm"};
-    for (const auto& ext : candidates) {
-        QString videoPath = basePath + ext;
-        if (QFileInfo::exists(videoPath)) {
-            m_currentVideoPath = videoPath;
-            stopFallbackVisuals();
-            if (m_pVideoEnabled->get()) {
-                slotVideoEnabled(1.0);
-            }
-            return;
+    const QString videoPath = mixxx::findCompanionVideoFor(audioPath);
+    if (!videoPath.isEmpty()) {
+        m_currentVideoPath = videoPath;
+        stopFallbackVisuals();
+        if (m_pVideoEnabled->get()) {
+            slotVideoEnabled(1.0);
         }
+        return;
     }
     m_currentVideoPath.clear();
     stopFallbackVisuals();
