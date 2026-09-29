@@ -1,6 +1,7 @@
 #include "export/engineexporter.h"
 
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QSqlDatabase>
 #include <QSqlError>
@@ -27,6 +28,8 @@ constexpr int kMaxHotCues = 8;
 // native DeviceSQL/.pdb. See docs/TODO.md item 13.
 const QString kEngineLibrarySubdir = QStringLiteral("Engine Library");
 const QString kDbConnectionName = QStringLiteral("engine_export_mixxxdb");
+// Sibling of "Engine Library" on the export root that holds the copied audio.
+const QString kMusicSubdir = QStringLiteral("Mixxx Music");
 
 std::optional<djinterop::musical_key> toDjinteropKey(int mixxxKey) {
     // Map from Mixxx chromatic key id (1-24) to libdjinterop Circle-of-Fifths enum.
@@ -80,7 +83,7 @@ bool EngineExporter::exportTrack(const QString& trackPath, const QString& usbPat
                 engineLibraryDir.absolutePath().toStdString(),
                 e::latest_schema);
 
-        const bool ok = exportTrackToDatabase(trackPath, engDb);
+        const bool ok = exportTrackToDatabase(trackPath, usbPath, engDb);
         emit exportComplete(ok,
                 ok ? QStringLiteral("Exported: %1").arg(trackPath)
                    : QStringLiteral("Export failed: %1").arg(trackPath));
@@ -93,7 +96,10 @@ bool EngineExporter::exportTrack(const QString& trackPath, const QString& usbPat
     }
 }
 
-bool EngineExporter::exportTrackToDatabase(const QString& trackPath, djinterop::database& engDb) {
+bool EngineExporter::exportTrackToDatabase(
+        const QString& trackPath,
+        const QString& usbPath,
+        djinterop::database& engDb) {
     QSqlDatabase db = QSqlDatabase::addDatabase(
             QStringLiteral("QSQLITE"), kDbConnectionName);
     db.setDatabaseName(m_settingsPath + QStringLiteral("/mixxxdb.sqlite"));
@@ -168,7 +174,27 @@ bool EngineExporter::exportTrackToDatabase(const QString& trackPath, djinterop::
     QSqlDatabase::removeDatabase(kDbConnectionName);
 
     try {
+        // libdjinterop refuses to create a track without relative_path, and
+        // this used to never set it - so create_track() threw for every
+        // track and the exporter had never produced one. Copy the audio next
+        // to the database (best effort, as upstream's exporter does) and
+        // point at the copy relative to the Engine Library directory.
+        const QDir engineLibraryDir(usbPath + QStringLiteral("/") + kEngineLibrarySubdir);
+        const QDir musicDir(usbPath + QStringLiteral("/") + kMusicSubdir);
+        QDir().mkpath(musicDir.absolutePath());
+        const QFileInfo srcInfo(trackPath);
+        const QString dstPath = musicDir.filePath(
+                QStringLiteral("%1 - %2").arg(trackId).arg(srcInfo.fileName()));
+        if (srcInfo.exists() &&
+                (!QFile::exists(dstPath) ||
+                        srcInfo.lastModified() > QFileInfo(dstPath).lastModified())) {
+            if (!QFile::copy(trackPath, dstPath)) {
+                qWarning() << "EngineExport: could not copy audio to" << dstPath;
+            }
+        }
+
         auto snapshot = djinterop::track_snapshot{};
+        snapshot.relative_path = engineLibraryDir.relativeFilePath(dstPath).toStdString();
         snapshot.artist = artist.toStdString();
         snapshot.title = title.toStdString();
         snapshot.album = album.toStdString();
@@ -306,7 +332,7 @@ bool EngineExporter::exportCrate(const QString& crateName, const QString& usbPat
         int failed = 0;
         for (int i = 0; i < total; ++i) {
             emit exportProgress(i + 1, total);
-            if (!exportTrackToDatabase(trackPaths[i], engDb)) {
+            if (!exportTrackToDatabase(trackPaths[i], usbPath, engDb)) {
                 ++failed;
                 qWarning().noquote()
                         << QStringLiteral("EngineExport: Failed on %1")
@@ -314,12 +340,17 @@ bool EngineExporter::exportCrate(const QString& crateName, const QString& usbPat
             }
         }
 
-        emit exportComplete(true,
+        // A partial export still counts as success (the message carries the
+        // real N/M); an export that wrote nothing must not - this used to
+        // report success unconditionally, which hid that create_track() was
+        // failing for every single track.
+        const bool anyExported = (total - failed) > 0;
+        emit exportComplete(anyExported,
                 QStringLiteral("Exported %1/%2 tracks from crate '%3'")
                         .arg(total - failed)
                         .arg(total)
                         .arg(crateName));
-        return true;
+        return anyExported;
     } catch (const std::exception& e) {
         qWarning() << "EngineExport: libdjinterop error opening engine database:" << e.what();
         emit exportComplete(false,

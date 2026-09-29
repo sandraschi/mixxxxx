@@ -29,7 +29,17 @@ class EngineExporter : public QObject {
     // track (docs/TODO.md item 15) - besides being wasteful, repeatedly
     // creating a database at a path that already has one is not a
     // supported/tested libdjinterop usage pattern.
-    bool exportTrackToDatabase(const QString& trackPath, djinterop::database& engDb);
+    //
+    // usbPath is the export root: the audio file is copied into a sibling
+    // "Mixxx Music" folder there (same convention as upstream Mixxx's own
+    // Engine Prime exporter, src/library/export/engineprimeexportjob.cpp)
+    // and the track's relative_path - which libdjinterop REQUIRES and this
+    // exporter never used to set, so create_track() threw for every track -
+    // points at that copy relative to the Engine Library directory.
+    bool exportTrackToDatabase(
+            const QString& trackPath,
+            const QString& usbPath,
+            djinterop::database& engDb);
 
     QString m_settingsPath;
 };

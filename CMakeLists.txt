@@ -2166,6 +2166,7 @@ if(BUILD_TESTING)
     src/test/controllerscriptenginelegacy_test.cpp
     src/test/controlobjecttest.cpp
     src/test/controlcli_test.cpp
+    src/test/engineexporter_test.cpp
     src/test/exportcli_test.cpp
     src/test/importcli_test.cpp
     src/test/oscserver_test.cpp
