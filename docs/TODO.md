@@ -141,8 +141,9 @@ audio, `.mp4/.mkv/.mov/.webm`) is copied beside the exported audio as
 Fork additions to upstream files, both small: `EnginePrimeExportRequest::explicitTracks`
 and a matching early return in `EnginePrimeExportJob::loadIds` (per-deck export).
 Shared helper `video/companionvideo.h` now used by VideoWidget and the exporter.
-8 tests (`engineexporter_test.cpp`, real `TrackCollectionManager` via `LibraryTest`).
-Not done: loops (upstream TODO too), video export via GUI dialog (upstream's dialog
+11 tests (`engineexporter_test.cpp`, real `TrackCollectionManager` via `LibraryTest`).
+Loops: upstream leaves them as a TODO; we export saved loops (8 Engine slots, a loop keeps its hot-cue number as slot, others fill free slots, invalid/extra dropped) - patch in `EnginePrimeExportJob::exportMetadata`.
+Not done: video export via GUI dialog (upstream's dialog
 still runs the plain job), a reader that uses `mixxx-video.json` on import.
 
 ---

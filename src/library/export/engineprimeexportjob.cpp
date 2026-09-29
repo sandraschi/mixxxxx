@@ -1,5 +1,6 @@
 #include "library/export/engineprimeexportjob.h"
 
+#include <algorithm>
 #include <QHash>
 #include <QStringList>
 #include <array>
@@ -25,6 +26,25 @@ namespace {
 const std::string kMixxxRootCrateName = "Mixxx";
 
 constexpr int kMaxHotCues = 8;
+constexpr int kMaxLoops = 8;
+
+djinterop::loop toEngineLoop(const CuePointer& pCue, int slot) {
+    QString label = pCue->getLabel();
+    if (label.isEmpty()) {
+        label = QString("Loop %1").arg(slot + 1);
+    }
+    djinterop::loop loop{};
+    loop.label = label.toStdString();
+    loop.start_sample_offset = pCue->getPosition().value();
+    loop.end_sample_offset = pCue->getEndPosition().value();
+    const auto color = mixxx::RgbColor::toQColor(pCue->getColor());
+    loop.color = djinterop::pad_color{
+            static_cast<uint_least8_t>(color.red()),
+            static_cast<uint_least8_t>(color.green()),
+            static_cast<uint_least8_t>(color.blue()),
+            255};
+    return loop;
+}
 
 constexpr uint8_t kDefaultWaveformOpacity = 127;
 
@@ -276,7 +296,51 @@ void exportMetadata(
         snapshot.hot_cues[hotCueIndex] = hotCue;
     }
 
-    // TODO (mr-smidge): Export saved loops.
+    // mixxxxx addition (upstream leaves this as a TODO): export saved loops.
+    // Engine has 8 loop slots. A loop that is also a numbered hot cue keeps
+    // that number as its slot; the rest fill the remaining free slots in
+    // track order. Anything beyond 8 is dropped with a log line.
+    {
+        std::vector<CuePointer> loopCues;
+        for (const CuePointer& pCue : cues) {
+            if (pCue->getType() != CueType::Loop) {
+                continue;
+            }
+            const auto start = pCue->getPosition();
+            const auto end = pCue->getEndPosition();
+            if (!start.isValid() || !end.isValid() || end <= start) {
+                qWarning() << "Skipping invalid saved loop on track" << pTrack->getId();
+                continue;
+            }
+            loopCues.push_back(pCue);
+        }
+        std::sort(loopCues.begin(), loopCues.end(), [](const CuePointer& a, const CuePointer& b) {
+            return a->getPosition() < b->getPosition();
+        });
+
+        snapshot.loops.resize(kMaxLoops);
+        std::vector<CuePointer> unslotted;
+        for (const CuePointer& pCue : loopCues) {
+            const int slot = pCue->getHotCue();
+            if (slot >= 0 && slot < kMaxLoops && !snapshot.loops[slot].has_value()) {
+                snapshot.loops[slot] = toEngineLoop(pCue, slot);
+            } else {
+                unslotted.push_back(pCue);
+            }
+        }
+        for (const CuePointer& pCue : unslotted) {
+            const auto freeSlot = std::find_if(snapshot.loops.begin(),
+                    snapshot.loops.end(),
+                    [](const std::optional<djinterop::loop>& l) { return !l.has_value(); });
+            if (freeSlot == snapshot.loops.end()) {
+                qInfo() << "Skipping loop as the Engine DJ format only supports at most"
+                        << kMaxLoops << "loops.";
+                continue;
+            }
+            const int slot = static_cast<int>(freeSlot - snapshot.loops.begin());
+            *freeSlot = toEngineLoop(pCue, slot);
+        }
+    }
 
     // Write waveform.
     if (pWaveform) {

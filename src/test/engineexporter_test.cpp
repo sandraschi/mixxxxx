@@ -192,6 +192,65 @@ TEST_F(EngineExporterTest, PerTrackExportExportsExactlyThatTrack) {
             musicDir().filePath(pOther->getId().toString() + " - other.mp3")));
 }
 
+using mixxx::audio::FramePos;
+
+TEST_F(EngineExporterTest, SavedLoopIsExportedWithLabelAndPositions) {
+    auto pTrack = addTrack(copyAudio("loop.mp3"));
+    auto pCue = pTrack->createAndAddCue(mixxx::CueType::Loop, -1, FramePos(44100), FramePos(88200));
+    pCue->setLabel("Drop");
+    makeCrate("Set", {pTrack});
+
+    ASSERT_TRUE(exportCrate("Set"));
+
+    auto db = djinterop::engine::load_database(engineLibraryPath().toStdString());
+    const auto loops = db.tracks().at(0).loops();
+    ASSERT_EQ(loops.size(), 8u);
+    ASSERT_TRUE(loops[0].has_value());
+    EXPECT_EQ(loops[0]->label, "Drop");
+    EXPECT_DOUBLE_EQ(loops[0]->start_sample_offset, 44100);
+    EXPECT_DOUBLE_EQ(loops[0]->end_sample_offset, 88200);
+    EXPECT_FALSE(loops[1].has_value());
+}
+
+TEST_F(EngineExporterTest, LoopKeepsItsHotCueNumberAsSlot) {
+    auto pTrack = addTrack(copyAudio("slot.mp3"));
+    pTrack->createAndAddCue(mixxx::CueType::Loop, 3, FramePos(10000), FramePos(20000));
+    pTrack->createAndAddCue(mixxx::CueType::Loop, -1, FramePos(30000), FramePos(40000));
+    makeCrate("Set", {pTrack});
+
+    ASSERT_TRUE(exportCrate("Set"));
+
+    auto db = djinterop::engine::load_database(engineLibraryPath().toStdString());
+    const auto loops = db.tracks().at(0).loops();
+    ASSERT_TRUE(loops[3].has_value());
+    EXPECT_DOUBLE_EQ(loops[3]->start_sample_offset, 10000);
+    // The unnumbered loop takes the first free slot, not slot 3.
+    ASSERT_TRUE(loops[0].has_value());
+    EXPECT_DOUBLE_EQ(loops[0]->start_sample_offset, 30000);
+}
+
+TEST_F(EngineExporterTest, InvalidLoopIsSkippedAndExtraLoopsAreCapped) {
+    auto pTrack = addTrack(copyAudio("many.mp3"));
+    pTrack->createAndAddCue(mixxx::CueType::Loop, -1, FramePos(50000), FramePos(50000));
+    for (int i = 0; i < 10; ++i) {
+        pTrack->createAndAddCue(mixxx::CueType::Loop, -1, FramePos(1000 * (i + 1)), FramePos(1000 * (i + 1) + 500));
+    }
+    makeCrate("Set", {pTrack});
+
+    ASSERT_TRUE(exportCrate("Set"));
+
+    auto db = djinterop::engine::load_database(engineLibraryPath().toStdString());
+    const auto loops = db.tracks().at(0).loops();
+    int present = 0;
+    for (const auto& l : loops) {
+        if (l.has_value()) {
+            ++present;
+            EXPECT_LT(l->start_sample_offset, l->end_sample_offset);
+        }
+    }
+    EXPECT_EQ(present, 8);
+}
+
 TEST_F(EngineExporterTest, UnknownCrateFailsAndCreatesNoLibrary) {
     EXPECT_FALSE(exportCrate("nope"));
     EXPECT_FALSE(QDir(engineLibraryPath()).exists());
