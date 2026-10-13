@@ -45,7 +45,18 @@ $running = Get-Process -Name mixxx -ErrorAction SilentlyContinue
 if ($running) {
     Write-Host "Stopping mixxx.exe (PID $($running.Id -join ', '))..."
     $running | Stop-Process -Force
-    Start-Sleep -Seconds 2
+    # HARDENED 2026-09-17: was a blind Start-Sleep -Seconds 2, no check the
+    # process(es) actually died before the installer build proceeds to touch the
+    # same binary/install dir (TRAPS_AND_PITFALLS.md #36). Poll instead.
+    $waitSec = 10
+    $elapsed = 0
+    while ($elapsed -lt $waitSec -and (Get-Process -Name mixxx -ErrorAction SilentlyContinue)) {
+        Start-Sleep -Milliseconds 500
+        $elapsed += 0.5
+    }
+    if (Get-Process -Name mixxx -ErrorAction SilentlyContinue) {
+        Write-Host "WARNING: mixxx.exe still running after ${waitSec}s" -ForegroundColor Yellow
+    }
 }
 
 Push-Location $buildPath
